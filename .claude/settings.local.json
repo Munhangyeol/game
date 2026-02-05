@@ -3,7 +3,9 @@
     "allow": [
       "Bash(start \"\" \"C:\\\\Claude-code\\\\dummy\\\\game.html\")",
       "Bash(git init:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfeat: MapleQuest RPG 초기 프로젝트 설정\n\n- 메이플스토리 스타일 2D 횡스크롤 RPG 게임\n- 3개 직업 \\(전사, 도적, 궁수\\) 구현\n- 스킬 시스템, 버프, 레벨업 시스템 포함\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(gh repo create:*)"
     ]
   }
 }
