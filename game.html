@@ -46,6 +46,11 @@
             left: 10px;
             color: #aaa;
             font-size: 12px;
+            transition: opacity 1s ease-out;
+            opacity: 1;
+        }
+        .controls.fade-out {
+            opacity: 0;
         }
         .level-up {
             position: absolute;
@@ -59,11 +64,31 @@
             animation: levelUp 2s ease-out forwards;
             pointer-events: none;
             display: none;
+            text-align: center;
+        }
+        .stat-gain {
+            position: absolute;
+            top: 55%;
+            left: 50%;
+            transform: translate(-50%, 0);
+            color: #44ff44;
+            font-size: 20px;
+            text-shadow: 0 0 10px #44ff44;
+            pointer-events: none;
+            display: none;
+            animation: levelUp 1.5s ease-out forwards;
         }
         @keyframes levelUp {
             0% { opacity: 1; transform: translate(-50%, -50%) scale(0.5); }
             50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
             100% { opacity: 0; transform: translate(-50%, -100%) scale(1); }
+        }
+        @keyframes hpPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .hp-fill-danger {
+            animation: hpPulse 0.8s ease-in-out infinite;
         }
         .job-select {
             position: absolute;
@@ -186,9 +211,9 @@
                         <div style="color: #ff6644; margin-top: 10px;">
                             <b>스킬:</b><br>
                             [A] 기본공격 - 검 휘두르기<br>
-                            [Z] 파워 스트라이크<br>
-                            [X] 슬래시 블래스트<br>
-                            [C] 레이지 (버프)
+                            [Z] 💥 파워 스트라이크<br>
+                            [X] 🌀 슬래시 블래스트<br>
+                            [C] 😤 레이지 (버프)
                         </div>
                     </div>
                 </div>
@@ -202,9 +227,9 @@
                         <div style="color: #aa44ff; margin-top: 10px;">
                             <b>스킬:</b><br>
                             [A] 기본공격 - 단검 난무<br>
-                            [Z] 삼중 스탭<br>
-                            [X] 어쌔시네이트<br>
-                            [C] 헤이스트 (버프)
+                            [Z] ⚡ 삼중 스탭<br>
+                            [X] 💀 어쌔시네이트<br>
+                            [C] 💨 헤이스트 (버프)
                         </div>
                     </div>
                 </div>
@@ -218,9 +243,9 @@
                         <div style="color: #44ff66; margin-top: 10px;">
                             <b>스킬:</b><br>
                             [A] 기본공격 - 화살 발사<br>
-                            [Z] 더블 샷<br>
-                            [X] 애로우 레인<br>
-                            [C] 소울 애로우 (버프)
+                            [Z] ➹ 더블 샷<br>
+                            [X] 🌧️ 애로우 레인<br>
+                            [C] ✨ 소울 애로우 (버프)
                         </div>
                     </div>
                 </div>
@@ -235,9 +260,9 @@
             <div style="font-size: 12px">MP: <span id="mpText">50/50</span></div>
             <div class="stat-bar"><div class="exp-fill" id="expBar" style="width: 0%"></div></div>
             <div style="font-size: 12px">EXP: <span id="expText">0/100</span></div>
-            <div style="margin-top: 10px">공격력: <span id="attack">10</span></div>
-            <div>크리티컬: <span id="crit">10</span>%</div>
-            <div>처치: <span id="kills">0</span></div>
+            <div style="margin-top: 10px">⚔️ 공격력: <span id="attack">10</span></div>
+            <div>💥 크리티컬: <span id="crit">10</span>%</div>
+            <div>💀 처치: <span id="kills">0</span></div>
         </div>
 
         <div class="buff-bar" id="buffBar"></div>
@@ -246,6 +271,7 @@
             [←→] 이동 | [↑/Space] 점프 | [A] 기본공격 | [Z][X][C] 스킬
         </div>
         <div class="level-up" id="levelUpText">LEVEL UP!</div>
+        <div class="stat-gain" id="statGainText"></div>
     </div>
 
     <script>
@@ -267,6 +293,11 @@
                 hpPerLevel: 30,
                 mpPerLevel: 5,
                 attackPerLevel: 7,
+                promotionBonus: [
+                    { level: 10, hp: 100, mp: 20 },  // 초변직 (기사)
+                    { level: 30, hp: 200, mp: 40 },  // 재변직 (다크나이트)
+                    { level: 70, hp: 400, mp: 80 }   // 최종변직 (히어로)
+                ],
                 basicAttack: { damage: 1.4, range: 75, type: 'sword', cooldown: 28, animDuration: 200 },
                 skills: [
                     { name: '파워 스트라이크', key: 'Z', mp: 5, cooldown: 30, damage: 2.8, type: 'powerStrike', knockback: true, icon: '💥' },
@@ -287,6 +318,11 @@
                 hpPerLevel: 20,
                 mpPerLevel: 8,
                 attackPerLevel: 5,
+                promotionBonus: [
+                    { level: 10, hp: 80, mp: 30 },   // 초변직 (로그)
+                    { level: 30, hp: 150, mp: 60 },  // 재변직 (어쌔신)
+                    { level: 70, hp: 300, mp: 120 }  // 최종변직 (나이트로드)
+                ],
                 basicAttack: { damage: 0.4, range: 50, type: 'dagger', hits: 2, cooldown: 10, animDuration: 60 },
                 skills: [
                     { name: '삼중 스탭', key: 'Z', mp: 5, cooldown: 35, damage: 1.4, hits: 3, type: 'doubleStab', icon: '⚡' },
@@ -307,6 +343,11 @@
                 hpPerLevel: 15,
                 mpPerLevel: 7,
                 attackPerLevel: 8,
+                promotionBonus: [
+                    { level: 10, hp: 70, mp: 25 },   // 초변직 (헌터)
+                    { level: 30, hp: 130, mp: 50 },  // 재변직 (레인저)
+                    { level: 70, hp: 250, mp: 100 }  // 최종변직 (보우마스터)
+                ],
                 basicAttack: { damage: 1.0, type: 'arrow', cooldown: 18, animDuration: 100 },
                 skills: [
                     { name: '더블 샷', key: 'Z', mp: 3, cooldown: 20, damage: 1.8, arrows: 2, type: 'doubleShot', spread: true, icon: '➹' },
@@ -933,6 +974,7 @@
                 this.x = x;
                 this.y = y;
                 this.type = type;
+                this.spawnLevel = player.level; // 생성 시점 플레이어 레벨 저장
 
                 const monsterTypes = {
                     slime: { width: 50, height: 40, hp: 30 + player.level * 10, damage: 8 + player.level * 2, exp: 25, color: '#44dd44' },
@@ -942,6 +984,7 @@
 
                 const mt = monsterTypes[type];
                 Object.assign(this, mt);
+                this.baseExp = this.exp; // 기본 경험치 저장
                 this.maxHp = this.hp;
                 this.vx = (Math.random() - 0.5) * 2;
                 this.vy = 0;
@@ -1059,12 +1102,19 @@
                 this.hitFlash = 10;
 
                 const color = isBackstab ? '#ff00ff' : (isCrit ? '#ffaa00' : '#ffff00');
-                createDamageText(this.x + this.width/2, this.y, finalDmg + (isCrit ? '!' : ''), color);
+                createDamageText(this.x + this.width/2, this.y, finalDmg + (isCrit ? '!' : ''), color, isCrit, isBackstab);
                 createParticles(this.x + this.width/2, this.y + this.height/2, this.color, 8);
 
                 if (this.hp <= 0) {
                     this.isDead = true;
-                    player.exp += this.exp;
+
+                    // 비선형 EXP 스케일링: 레벨 차이에 따른 보상 조정
+                    const levelDiff = player.level - this.spawnLevel;
+                    let expMultiplier = 1 + (levelDiff * 0.15); // 레벨 차이당 ±15%
+                    expMultiplier = Math.max(0.3, Math.min(2.0, expMultiplier)); // 최소 30%, 최대 200%
+                    const finalExp = Math.floor(this.baseExp * expMultiplier);
+
+                    player.exp += finalExp;
                     player.kills++;
                     checkLevelUp();
                     updateUI();
@@ -1090,6 +1140,11 @@
             document.getElementById('controlsUI').style.display = 'block';
             document.getElementById('jobName').textContent = job.name;
             document.getElementById('jobIcon').textContent = job.icon;
+
+            // 게임 시작 3초 후 컨트롤 설명 페이드아웃
+            setTimeout(() => {
+                document.getElementById('controlsUI').classList.add('fade-out');
+            }, 3000);
 
             createSkillBar();
             updateUI();
@@ -1411,8 +1466,8 @@
             }
         }
 
-        function createDamageText(x, y, damage, color) {
-            game.damageTexts.push({ x, y, damage, color, life: 60, vy: -2 });
+        function createDamageText(x, y, damage, color, isCrit = false, isBackstab = false) {
+            game.damageTexts.push({ x, y, damage, color, life: 60, vy: -2, isCrit, isBackstab });
         }
 
         function checkLevelUp() {
@@ -1426,14 +1481,26 @@
                 player.maxMp += job.mpPerLevel;
                 player.mp = player.maxMp;
                 player.attack += job.attackPerLevel;
+                player.critChance += 0.5; // 레벨당 크리티컬 확률 +0.5%
                 player.expToLevel = Math.floor(player.expToLevel * 1.5);
 
+                // 레벨업 텍스트 (레벨 숫자 포함)
                 const levelUpText = document.getElementById('levelUpText');
+                levelUpText.textContent = `LEVEL UP! Lv.${player.level}`;
                 levelUpText.style.display = 'block';
                 levelUpText.style.animation = 'none';
                 levelUpText.offsetHeight;
                 levelUpText.style.animation = 'levelUp 2s ease-out forwards';
                 setTimeout(() => levelUpText.style.display = 'none', 2000);
+
+                // 스탯 증가분 표시
+                const statGainText = document.getElementById('statGainText');
+                statGainText.textContent = `HP +${job.hpPerLevel} | MP +${job.mpPerLevel} | ATK +${job.attackPerLevel} | CRIT +0.5%`;
+                statGainText.style.display = 'block';
+                statGainText.style.animation = 'none';
+                statGainText.offsetHeight;
+                statGainText.style.animation = 'levelUp 1.5s ease-out forwards';
+                setTimeout(() => statGainText.style.display = 'none', 1500);
 
                 for (let i = 0; i < 50; i++) {
                     game.particles.push({
@@ -1452,7 +1519,17 @@
         function updateUI() {
             if (!game.started) return;
             document.getElementById('level').textContent = player.level;
-            document.getElementById('hpBar').style.width = (player.hp / player.maxHp * 100) + '%';
+
+            // HP 바 업데이트 및 위험 구간(≤30%) 깜빡 효과
+            const hpBar = document.getElementById('hpBar');
+            const hpPercent = player.hp / player.maxHp * 100;
+            hpBar.style.width = hpPercent + '%';
+            if (hpPercent <= 30) {
+                hpBar.classList.add('hp-fill-danger');
+            } else {
+                hpBar.classList.remove('hp-fill-danger');
+            }
+
             document.getElementById('hpText').textContent = `${Math.max(0, Math.floor(player.hp))}/${player.maxHp}`;
             document.getElementById('mpBar').style.width = (player.mp / player.maxMp * 100) + '%';
             document.getElementById('mpText').textContent = `${Math.max(0, Math.floor(player.mp))}/${player.maxMp}`;
@@ -1744,7 +1821,14 @@
             for (const t of game.damageTexts) {
                 ctx.globalAlpha = t.life / 60;
                 ctx.fillStyle = t.color;
-                ctx.font = 'bold 20px Arial';
+
+                // 크리티컬: 폰트 크기 1.5배, 백스탭: 볼드체 강화
+                let fontSize = 20;
+                let fontWeight = 'bold';
+                if (t.isCrit) fontSize = 30; // 크리티컬은 1.5배 크기
+                if (t.isBackstab) fontWeight = '900'; // 백스탭은 더 굵게
+
+                ctx.font = `${fontWeight} ${fontSize}px Arial`;
                 ctx.textAlign = 'center';
                 ctx.fillText(t.damage, t.x, t.y);
             }
