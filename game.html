@@ -202,7 +202,7 @@
                         <div style="color: #aa44ff; margin-top: 10px;">
                             <b>스킬:</b><br>
                             [A] 기본공격 - 단검 난무<br>
-                            [Z] 더블 스탭<br>
+                            [Z] 삼중 스탭<br>
                             [X] 어쌔시네이트<br>
                             [C] 헤이스트 (버프)
                         </div>
@@ -267,9 +267,9 @@
                 hpPerLevel: 30,
                 mpPerLevel: 5,
                 attackPerLevel: 7,
-                basicAttack: { damage: 1.0, range: 70, type: 'sword' },
+                basicAttack: { damage: 1.4, range: 75, type: 'sword', cooldown: 28, animDuration: 200 },
                 skills: [
-                    { name: '파워 스트라이크', key: 'Z', mp: 5, cooldown: 30, damage: 2.5, type: 'powerStrike', icon: '💥' },
+                    { name: '파워 스트라이크', key: 'Z', mp: 5, cooldown: 30, damage: 2.8, type: 'powerStrike', knockback: true, icon: '💥' },
                     { name: '슬래시 블래스트', key: 'X', mp: 10, cooldown: 90, damage: 1.5, type: 'slashBlast', range: 150, icon: '🌀' },
                     { name: '레이지', key: 'C', mp: 15, cooldown: 600, duration: 600, buff: 'rage', attackBonus: 1.5, icon: '😤' }
                 ]
@@ -287,10 +287,10 @@
                 hpPerLevel: 20,
                 mpPerLevel: 8,
                 attackPerLevel: 5,
-                basicAttack: { damage: 0.8, range: 50, type: 'dagger', hits: 2 },
+                basicAttack: { damage: 0.4, range: 50, type: 'dagger', hits: 2, cooldown: 10, animDuration: 60 },
                 skills: [
-                    { name: '더블 스탭', key: 'Z', mp: 4, cooldown: 20, damage: 1.8, hits: 2, type: 'doubleStab', icon: '⚡' },
-                    { name: '어쌔시네이트', key: 'X', mp: 12, cooldown: 120, damage: 4.0, type: 'assassinate', backstab: true, icon: '💀' },
+                    { name: '삼중 스탭', key: 'Z', mp: 5, cooldown: 35, damage: 1.4, hits: 3, type: 'doubleStab', icon: '⚡' },
+                    { name: '어쌔시네이트', key: 'X', mp: 12, cooldown: 120, damage: 4.5, type: 'assassinate', backstab: true, icon: '💀' },
                     { name: '헤이스트', key: 'C', mp: 10, cooldown: 480, duration: 600, buff: 'haste', speedBonus: 1.5, icon: '💨' }
                 ]
             },
@@ -307,9 +307,9 @@
                 hpPerLevel: 15,
                 mpPerLevel: 7,
                 attackPerLevel: 8,
-                basicAttack: { damage: 1.0, type: 'arrow' },
+                basicAttack: { damage: 1.0, type: 'arrow', cooldown: 18, animDuration: 100 },
                 skills: [
-                    { name: '더블 샷', key: 'Z', mp: 3, cooldown: 15, damage: 1.5, arrows: 2, type: 'doubleShot', icon: '➹' },
+                    { name: '더블 샷', key: 'Z', mp: 3, cooldown: 20, damage: 1.8, arrows: 2, type: 'doubleShot', spread: true, icon: '➹' },
                     { name: '애로우 레인', key: 'X', mp: 15, cooldown: 150, damage: 1.0, type: 'arrowRain', icon: '🌧️' },
                     { name: '소울 애로우', key: 'C', mp: 8, cooldown: 420, duration: 600, buff: 'soul', piercing: true, icon: '✨' }
                 ]
@@ -411,6 +411,15 @@
                         break;
                     case 'arrowRain':
                         this.drawArrowRain(progress);
+                        break;
+                    case 'rageActivate':
+                        this.drawRageActivate(progress);
+                        break;
+                    case 'hasteActivate':
+                        this.drawHasteActivate(progress);
+                        break;
+                    case 'soulActivate':
+                        this.drawSoulActivate(progress);
                         break;
                 }
 
@@ -542,27 +551,28 @@
             drawDoubleStab(progress) {
                 const alpha = 1 - progress;
                 ctx.globalAlpha = alpha;
+                const numHits = this.data.hits || 2;
+                const colors = ['#aa44ff', '#cc66ff', '#ee88ff'];
+                const gap = 0.75 / numHits;
 
-                // 두 번의 찌르기
-                for (let i = 0; i < 2; i++) {
-                    const offset = i * 0.4;
-                    const p = Math.max(0, Math.min(1, (progress - offset) * 2.5));
+                for (let i = 0; i < numHits; i++) {
+                    const offset = i * gap;
+                    const p = Math.max(0, Math.min(1, (progress - offset) / (1 - offset) * 1.8));
 
                     if (p > 0) {
-                        // 찌르기 궤적
                         const length = 60 * (1 - Math.abs(p - 0.5) * 2);
-                        ctx.fillStyle = i === 0 ? '#aa44ff' : '#cc66ff';
+                        const yOff = (i - numHits * 0.3) * 10;
+                        ctx.fillStyle = colors[i] || '#ee88ff';
                         ctx.beginPath();
-                        ctx.moveTo(this.x + this.direction * 20, this.y - 5 + i * 10);
-                        ctx.lineTo(this.x + this.direction * (20 + length), this.y + i * 10);
-                        ctx.lineTo(this.x + this.direction * 20, this.y + 5 + i * 10);
+                        ctx.moveTo(this.x + this.direction * 20, this.y - 5 + yOff);
+                        ctx.lineTo(this.x + this.direction * (20 + length), this.y + yOff);
+                        ctx.lineTo(this.x + this.direction * 20, this.y + 5 + yOff);
                         ctx.fill();
 
-                        // 임팩트 이펙트
                         if (p > 0.4 && p < 0.6) {
                             ctx.fillStyle = '#ffffff';
                             ctx.beginPath();
-                            ctx.arc(this.x + this.direction * 80, this.y + i * 10, 10, 0, Math.PI * 2);
+                            ctx.arc(this.x + this.direction * 80, this.y + yOff, 10, 0, Math.PI * 2);
                             ctx.fill();
                         }
                     }
@@ -716,11 +726,102 @@
                     }
                 }
             }
+
+            drawRageActivate(progress) {
+                const alpha = 1 - progress;
+                ctx.globalAlpha = alpha;
+
+                const radius = 10 + progress * 65;
+                ctx.strokeStyle = '#ff4400';
+                ctx.lineWidth = 7 - progress * 6;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, radius, 0, Math.PI * 2);
+                ctx.stroke();
+
+                ctx.fillStyle = `rgba(255, 80, 0, ${alpha * 0.5})`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, radius * 0.45, 0, Math.PI * 2);
+                ctx.fill();
+
+                for (let i = 0; i < 14; i++) {
+                    const angle = (i / 14) * Math.PI * 2 + progress * 5;
+                    const dist = 15 + progress * 55;
+                    ctx.fillStyle = i % 2 === 0 ? '#ff6600' : '#ffaa00';
+                    ctx.beginPath();
+                    ctx.arc(
+                        this.x + Math.cos(angle) * dist,
+                        this.y + Math.sin(angle) * dist,
+                        5 - progress * 4, 0, Math.PI * 2
+                    );
+                    ctx.fill();
+                }
+            }
+
+            drawHasteActivate(progress) {
+                const alpha = 1 - progress;
+                ctx.globalAlpha = alpha;
+
+                for (let i = 0; i < 10; i++) {
+                    const angle = (i / 10) * Math.PI * 2 + progress * 3;
+                    const startDist = 8 + progress * 15;
+                    const endDist = 25 + progress * 55;
+
+                    ctx.strokeStyle = `rgba(170, 68, 255, ${alpha * (1 - progress * 0.5)})`;
+                    ctx.lineWidth = 3 - progress * 2;
+                    ctx.beginPath();
+                    ctx.moveTo(
+                        this.x + Math.cos(angle) * startDist,
+                        this.y + Math.sin(angle) * startDist
+                    );
+                    ctx.lineTo(
+                        this.x + Math.cos(angle) * endDist,
+                        this.y + Math.sin(angle) * endDist
+                    );
+                    ctx.stroke();
+                }
+
+                ctx.strokeStyle = `rgba(200, 160, 255, ${alpha * 0.6})`;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 20 + progress * 40, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            drawSoulActivate(progress) {
+                const alpha = 1 - progress;
+                ctx.globalAlpha = alpha;
+
+                for (let i = 0; i < 3; i++) {
+                    const delay = i * 0.22;
+                    const p = Math.max(0, (progress - delay) / (1 - delay));
+                    if (p > 0) {
+                        const radius = 8 + p * 65;
+                        ctx.strokeStyle = `rgba(68, 255, 200, ${alpha * (1 - p * 0.4)})`;
+                        ctx.lineWidth = 4 - p * 3;
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, radius, 0, Math.PI * 2);
+                        ctx.stroke();
+                    }
+                }
+
+                for (let i = 0; i < 8; i++) {
+                    const angle = (i / 8) * Math.PI * 2 + progress * 4;
+                    const dist = 12 + progress * 42;
+                    ctx.fillStyle = `rgba(150, 255, 220, ${alpha})`;
+                    ctx.beginPath();
+                    ctx.arc(
+                        this.x + Math.cos(angle) * dist,
+                        this.y + Math.sin(angle) * dist,
+                        3 - progress * 2.5, 0, Math.PI * 2
+                    );
+                    ctx.fill();
+                }
+            }
         }
 
         // 투사체 클래스
         class Projectile {
-            constructor(x, y, direction, damage, type = 'arrow', piercing = false) {
+            constructor(x, y, direction, damage, type = 'arrow', piercing = false, vy = 0) {
                 this.x = x;
                 this.y = y;
                 this.direction = direction;
@@ -731,6 +832,7 @@
                 this.hitMonsters = new Set();
                 this.life = 100;
                 this.trail = [];
+                this.vy = vy;
             }
 
             update() {
@@ -739,6 +841,7 @@
                 if (this.trail.length > 10) this.trail.shift();
 
                 this.x += this.speed * this.direction;
+                this.y += this.vy;
                 this.life--;
 
                 if (this.x < -50 || this.x > canvas.width + 50) return true;
@@ -1002,7 +1105,8 @@
             const basicSlot = document.createElement('div');
             basicSlot.className = 'skill-slot ready';
             basicSlot.id = 'basicAttack';
-            basicSlot.innerHTML = `<div class="key">A</div><div style="font-size: 20px">⚔</div><div style="font-size: 9px">기본</div>`;
+            const basicIcons = { warrior: '⚔', thief: '🗡', archer: '🏹' };
+            basicSlot.innerHTML = `<div class="key">A</div><div style="font-size: 20px">${basicIcons[player.job] || '⚔'}</div><div style="font-size: 9px">기본</div>`;
             skillBar.appendChild(basicSlot);
 
             job.skills.forEach((skill, i) => {
@@ -1069,8 +1173,8 @@
             const damage = player.attack * basic.damage * attackMultiplier;
 
             player.isAttacking = true;
-            player.attackCooldown = 20;
-            setTimeout(() => player.isAttacking = false, 150);
+            player.attackCooldown = basic.cooldown || 20;
+            setTimeout(() => player.isAttacking = false, basic.animDuration || 150);
 
             if (basic.type === 'sword') {
                 // 전사 기본 공격 - 검 휘두르기
@@ -1087,6 +1191,8 @@
                     if (!monster.isDead && attackBox.x < monster.x + monster.width && attackBox.x + attackBox.width > monster.x &&
                         attackBox.y < monster.y + monster.height && attackBox.y + attackBox.height > monster.y) {
                         monster.takeDamage(damage, Math.random() * 100 < player.critChance);
+                        monster.vx = player.direction * 8;
+                        monster.vy = -4;
                     }
                 }
             } else if (basic.type === 'dagger') {
@@ -1156,7 +1262,7 @@
                     performAssassinate(baseDamage, skill.backstab);
                     break;
                 case 'doubleShot':
-                    performDoubleShot(baseDamage, skill.arrows);
+                    performDoubleShot(baseDamage, skill.arrows, skill.spread);
                     break;
                 case 'arrowRain':
                     performArrowRain(baseDamage);
@@ -1165,6 +1271,10 @@
 
             if (skill.buff) {
                 player.buffs[skill.buff] = { duration: skill.duration, icon: skill.icon, ...skill };
+                const buffEffects = { rage: 'rageActivate', haste: 'hasteActivate', soul: 'soulActivate' };
+                if (buffEffects[skill.buff]) {
+                    game.effects.push(new Effect(buffEffects[skill.buff], player.x + player.width/2, player.y + player.height/2, player.direction, { maxFrames: 40 }));
+                }
             }
 
             updateUI();
@@ -1184,6 +1294,8 @@
                 if (!monster.isDead && attackBox.x < monster.x + monster.width && attackBox.x + attackBox.width > monster.x &&
                     attackBox.y < monster.y + monster.height && attackBox.y + attackBox.height > monster.y) {
                     monster.takeDamage(damage, Math.random() * 100 < player.critChance);
+                    monster.vx = player.direction * 15;
+                    monster.vy = -8;
                 }
             }
         }
@@ -1203,7 +1315,7 @@
         }
 
         function performDoubleStab(damage, hits) {
-            game.effects.push(new Effect('doubleStab', player.x + player.width/2, player.y + player.height/2, player.direction, { maxFrames: 20 }));
+            game.effects.push(new Effect('doubleStab', player.x + player.width/2, player.y + player.height/2, player.direction, { maxFrames: 25, hits: hits }));
 
             const attackBox = {
                 x: player.direction === 1 ? player.x + player.width : player.x - 80,
@@ -1238,24 +1350,24 @@
                 for (const monster of game.monsters) {
                     if (!monster.isDead && attackBox.x < monster.x + monster.width && attackBox.x + attackBox.width > monster.x &&
                         attackBox.y < monster.y + monster.height && attackBox.y + attackBox.height > monster.y) {
-                        const isBackstab = backstab && ((player.direction === 1 && monster.vx > 0) || (player.direction === -1 && monster.vx < 0));
-                        monster.takeDamage(damage, Math.random() * 100 < player.critChance, isBackstab);
+                        monster.takeDamage(damage, Math.random() * 100 < player.critChance, backstab);
                     }
                 }
             }, 200);
         }
 
-        function performDoubleShot(damage, arrows) {
+        function performDoubleShot(damage, arrows, spread) {
             game.effects.push(new Effect('doubleShot', player.x + player.width/2, player.y + player.height/2, player.direction, { maxFrames: 15 }));
 
             const piercing = player.buffs.soul && player.buffs.soul.duration > 0;
             for (let i = 0; i < arrows; i++) {
                 setTimeout(() => {
                     const offsetY = (i - (arrows-1)/2) * 15;
+                    const vy = spread ? (i - (arrows-1)/2) * 3 : 0;
                     game.projectiles.push(new Projectile(
                         player.x + (player.direction === 1 ? player.width : 0),
                         player.y + player.height/2 + offsetY,
-                        player.direction, damage, 'arrow', piercing
+                        player.direction, damage, 'arrow', piercing, vy
                     ));
                 }, i * 80);
             }
@@ -1540,7 +1652,7 @@
 
             // 이동
             let currentSpeed = player.speed * (player.buffs.haste ? player.buffs.haste.speedBonus : 1);
-            if (game.keys['ArrowLeft'] || game.keys['KeyA']) {
+            if (game.keys['ArrowLeft']) {
                 player.vx = -currentSpeed;
                 player.direction = -1;
             } else if (game.keys['ArrowRight'] || game.keys['KeyD']) {
