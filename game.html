@@ -172,8 +172,38 @@
             font-size: 16px;
             font-weight: bold;
             border-radius: 6px;
+            pointer-events: none;
+            z-index: 10;
         }
-        .skill-slot.ready { border-color: #44ff44; box-shadow: 0 0 10px rgba(68, 255, 68, 0.5); }
+        .skill-slot canvas.cd-overlay {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 5;
+        }
+        .skill-slot.ready {
+            border-color: #44ff44;
+            box-shadow: 0 0 10px rgba(68, 255, 68, 0.5);
+            animation: skillReady 0.5s ease-out;
+        }
+        @keyframes skillReady {
+            0% { box-shadow: 0 0 10px rgba(68, 255, 68, 0.5); }
+            50% { box-shadow: 0 0 20px rgba(68, 255, 68, 1); }
+            100% { box-shadow: 0 0 10px rgba(68, 255, 68, 0.5); }
+        }
+        @keyframes skillPress {
+            0% { transform: scale(1); }
+            50% { transform: scale(0.9); }
+            100% { transform: scale(1); }
+        }
+        @keyframes skillShake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-3px); }
+            75% { transform: translateX(3px); }
+        }
+        .skill-slot.press { animation: skillPress 0.2s ease-out; }
+        .skill-slot.shake { animation: skillShake 0.3s ease-out; }
         .buff-bar {
             position: absolute;
             top: 160px;
@@ -182,14 +212,33 @@
             gap: 5px;
         }
         .buff-icon {
-            width: 30px; height: 30px;
+            width: 40px; height: 45px;
             background: rgba(0,0,0,0.7);
             border: 2px solid #ffcc00;
             border-radius: 5px;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             font-size: 16px;
+            position: relative;
+        }
+        .buff-time {
+            font-size: 9px;
+            color: #fff;
+            font-weight: bold;
+            margin-top: 2px;
+        }
+        .buff-time.warning {
+            color: #ffaa00;
+        }
+        .buff-time.critical {
+            color: #ff4444;
+            animation: buffBlink 0.5s infinite;
+        }
+        @keyframes buffBlink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
         }
     </style>
 </head>
@@ -1085,12 +1134,31 @@
                 ctx.arc(this.x + this.width/2 + 8, this.y + this.height/2 + bounce, 3, 0, Math.PI * 2);
                 ctx.fill();
 
-                // HP 바
+                // HP 바 (메이플스타일)
                 if (!this.isDead) {
-                    ctx.fillStyle = '#333';
-                    ctx.fillRect(this.x, this.y - 10, this.width, 5);
-                    ctx.fillStyle = '#ff4444';
-                    ctx.fillRect(this.x, this.y - 10, (this.hp / this.maxHp) * this.width, 5);
+                    // 몬스터 이름
+                    ctx.fillStyle = '#fff';
+                    ctx.font = 'bold 10px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.strokeStyle = '#000';
+                    ctx.lineWidth = 2;
+                    const names = { slime: '슬라임', mushroom: '머쉬룸', stump: '스텀프' };
+                    ctx.strokeText(names[this.type] || this.type, this.x + this.width/2, this.y - 18);
+                    ctx.fillText(names[this.type] || this.type, this.x + this.width/2, this.y - 18);
+
+                    // HP 바 배경 (검은색)
+                    ctx.fillStyle = '#000';
+                    ctx.fillRect(this.x - 2, this.y - 12, this.width + 4, 8);
+
+                    // HP 바 (빨간색, 부드러운 트랜지션)
+                    const hpPercent = this.hp / this.maxHp;
+                    ctx.fillStyle = hpPercent > 0.5 ? '#ff4444' : hpPercent > 0.2 ? '#ff8844' : '#ffaa44';
+                    ctx.fillRect(this.x, this.y - 10, hpPercent * this.width, 5);
+
+                    // HP 바 테두리
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(this.x - 2, this.y - 12, this.width + 4, 8);
                 }
 
                 ctx.restore();
@@ -1162,6 +1230,13 @@
             basicSlot.id = 'basicAttack';
             const basicIcons = { warrior: '⚔', thief: '🗡', archer: '🏹' };
             basicSlot.innerHTML = `<div class="key">A</div><div style="font-size: 20px">${basicIcons[player.job] || '⚔'}</div><div style="font-size: 9px">기본</div>`;
+
+            // Canvas 오버레이 추가
+            const basicCanvas = document.createElement('canvas');
+            basicCanvas.className = 'cd-overlay';
+            basicCanvas.width = 50;
+            basicCanvas.height = 50;
+            basicSlot.appendChild(basicCanvas);
             skillBar.appendChild(basicSlot);
 
             job.skills.forEach((skill, i) => {
@@ -1169,6 +1244,13 @@
                 slot.className = 'skill-slot ready';
                 slot.id = `skill${i}`;
                 slot.innerHTML = `<div class="key">${skill.key}</div><div style="font-size: 20px">${skill.icon}</div><div style="font-size: 9px">${skill.name.substring(0, 4)}</div>`;
+
+                // Canvas 오버레이 추가
+                const canvas = document.createElement('canvas');
+                canvas.className = 'cd-overlay';
+                canvas.width = 50;
+                canvas.height = 50;
+                slot.appendChild(canvas);
                 skillBar.appendChild(slot);
             });
         }
@@ -1178,14 +1260,21 @@
 
             // 기본 공격 쿨다운
             const basicSlot = document.getElementById('basicAttack');
+            const basicCanvas = basicSlot.querySelector('canvas.cd-overlay');
             if (player.attackCooldown > 0) {
                 basicSlot.className = 'skill-slot';
+                drawCooldownArc(basicCanvas, player.attackCooldown, job.basicAttack.cooldown);
             } else {
                 basicSlot.className = 'skill-slot ready';
+                if (basicCanvas) {
+                    const ctx = basicCanvas.getContext('2d');
+                    ctx.clearRect(0, 0, 50, 50);
+                }
             }
 
             job.skills.forEach((skill, i) => {
                 const slot = document.getElementById(`skill${i}`);
+                const canvas = slot.querySelector('canvas.cd-overlay');
                 const cooldown = player.skillCooldowns[i];
                 if (cooldown > 0) {
                     slot.className = 'skill-slot';
@@ -1196,12 +1285,46 @@
                         slot.appendChild(cdDiv);
                     }
                     cdDiv.textContent = Math.ceil(cooldown / 60);
+
+                    // 원형 진행바 그리기
+                    drawCooldownArc(canvas, cooldown, skill.cooldown);
                 } else {
                     slot.className = 'skill-slot ready';
                     const cdDiv = slot.querySelector('.cooldown');
                     if (cdDiv) cdDiv.remove();
+
+                    // Canvas 클리어
+                    if (canvas) {
+                        const ctx = canvas.getContext('2d');
+                        ctx.clearRect(0, 0, 50, 50);
+                    }
                 }
             });
+        }
+
+        // 원형 쿨다운 진행바 그리기 (메이플스타일)
+        function drawCooldownArc(canvas, currentCd, maxCd) {
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const centerX = 25, centerY = 25, radius = 23;
+
+            ctx.clearRect(0, 0, 50, 50);
+
+            // 쿨다운 비율 계산 (0 = 완료, 1 = 시작)
+            const progress = currentCd / maxCd;
+
+            // 반투명 검은색 오버레이 (원형)
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 진행바 (시계방향, 12시 방향부터)
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, -Math.PI / 2, -Math.PI / 2 + (Math.PI * 2 * progress));
+            ctx.stroke();
         }
 
         function updateBuffBar() {
@@ -1211,8 +1334,14 @@
                 if (buffData.duration > 0) {
                     const buffIcon = document.createElement('div');
                     buffIcon.className = 'buff-icon';
-                    buffIcon.innerHTML = buffData.icon;
-                    buffIcon.title = `${Math.ceil(buffData.duration / 60)}s`;
+                    const seconds = Math.ceil(buffData.duration / 60);
+
+                    // 아이콘 + 남은 시간 텍스트
+                    buffIcon.innerHTML = `
+                        ${buffData.icon}
+                        <div class="buff-time ${seconds <= 10 ? 'warning' : ''} ${seconds <= 3 ? 'critical' : ''}">${seconds}s</div>
+                    `;
+                    buffIcon.title = buffName;
                     buffBar.appendChild(buffIcon);
                 }
             }
@@ -1293,7 +1422,22 @@
 
             const job = JOBS[player.job];
             const skill = job.skills[skillIndex];
-            if (player.mp < skill.mp) return;
+            const slot = document.getElementById(`skill${skillIndex}`);
+
+            // MP 부족 시 흔들림 애니메이션
+            if (player.mp < skill.mp) {
+                if (slot) {
+                    slot.classList.add('shake');
+                    setTimeout(() => slot.classList.remove('shake'), 300);
+                }
+                return;
+            }
+
+            // 스킬 사용 시 눌림 애니메이션
+            if (slot) {
+                slot.classList.add('press');
+                setTimeout(() => slot.classList.remove('press'), 200);
+            }
 
             player.mp -= skill.mp;
             player.skillCooldowns[skillIndex] = skill.cooldown;
@@ -1467,7 +1611,9 @@
         }
 
         function createDamageText(x, y, damage, color, isCrit = false, isBackstab = false) {
-            game.damageTexts.push({ x, y, damage, color, life: 60, vy: -2, isCrit, isBackstab });
+            // 좌우 분산 배치 (여러 대미지 동시 발생 시 겹치지 않게)
+            const offsetX = (Math.random() - 0.5) * 30;
+            game.damageTexts.push({ x: x + offsetX, y, damage, color, life: 60, vy: -2, isCrit, isBackstab });
         }
 
         function checkLevelUp() {
@@ -1830,6 +1976,13 @@
 
                 ctx.font = `${fontWeight} ${fontSize}px Arial`;
                 ctx.textAlign = 'center';
+
+                // 외곽선 (메이플스타일)
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 3;
+                ctx.strokeText(t.damage, t.x, t.y);
+
+                // 텍스트
                 ctx.fillText(t.damage, t.x, t.y);
             }
             ctx.globalAlpha = 1;
