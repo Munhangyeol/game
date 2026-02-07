@@ -424,9 +424,16 @@
             damageTexts: [],
             projectiles: [],
             effects: [],
+            coins: [],
+            skillNames: [],
             keys: {},
             lastMonsterSpawn: 0,
             monsterSpawnInterval: 2500,
+            combo: 0,
+            lastHitTime: 0,
+            screenShake: { x: 0, y: 0, frames: 0 },
+            hitStop: 0,
+            meso: 0,
         };
 
         // 플레이어
@@ -451,6 +458,7 @@
             job: null,
             skillCooldowns: [0, 0, 0],
             buffs: {},
+            trail: [],
         };
 
         // 이펙트 클래스
@@ -510,6 +518,12 @@
                         break;
                     case 'soulActivate':
                         this.drawSoulActivate(progress);
+                        break;
+                    case 'critBurst':
+                        this.drawCritBurst(progress);
+                        break;
+                    case 'levelUpPillar':
+                        this.drawLevelUpPillar(progress);
                         break;
                 }
 
@@ -907,6 +921,78 @@
                     ctx.fill();
                 }
             }
+
+            drawCritBurst(progress) {
+                const alpha = 1 - progress;
+                ctx.globalAlpha = alpha;
+
+                // 번개 효과
+                for (let i = 0; i < 6; i++) {
+                    const angle = (i / 6) * Math.PI * 2;
+                    const len = 30 + progress * 40;
+                    ctx.strokeStyle = '#ffff00';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.moveTo(this.x, this.y);
+                    ctx.lineTo(
+                        this.x + Math.cos(angle) * len + (Math.random() - 0.5) * 10,
+                        this.y + Math.sin(angle) * len + (Math.random() - 0.5) * 10
+                    );
+                    ctx.stroke();
+                }
+
+                // 별 효과
+                for (let i = 0; i < 4; i++) {
+                    const angle = (i / 4) * Math.PI * 2 + progress * 4;
+                    const dist = 20 + progress * 30;
+                    this.drawStar(
+                        this.x + Math.cos(angle) * dist,
+                        this.y + Math.sin(angle) * dist,
+                        5, 8, 4
+                    );
+                }
+            }
+
+            drawStar(x, y, arms, outerRadius, innerRadius) {
+                ctx.fillStyle = '#ffff00';
+                ctx.beginPath();
+                for (let i = 0; i < arms * 2; i++) {
+                    const angle = (i * Math.PI) / arms;
+                    const radius = i % 2 === 0 ? outerRadius : innerRadius;
+                    const px = x + Math.cos(angle - Math.PI / 2) * radius;
+                    const py = y + Math.sin(angle - Math.PI / 2) * radius;
+                    if (i === 0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                }
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            drawLevelUpPillar(progress) {
+                const alpha = 1 - progress;
+                ctx.globalAlpha = alpha * 0.8;
+
+                // 빛 기둥
+                const gradient = ctx.createLinearGradient(this.x, this.y + 60, this.x, this.y - 200);
+                gradient.addColorStop(0, 'rgba(255, 255, 0, 0.8)');
+                gradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.6)');
+                gradient.addColorStop(1, 'rgba(255, 255, 0, 0)');
+
+                ctx.fillStyle = gradient;
+                ctx.fillRect(this.x - 30, this.y - 200, 60, 260);
+
+                // 반짝이는 별 파티클
+                for (let i = 0; i < 12; i++) {
+                    const yPos = this.y + 60 - (progress + (i / 12)) * 260;
+                    const xOffset = Math.sin(yPos / 20 + i) * 25;
+                    const size = 3 + Math.sin(Date.now() / 100 + i) * 2;
+
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.arc(this.x + xOffset, yPos, size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
         }
 
         // 투사체 클래스
@@ -1012,6 +1098,95 @@
                         ctx.fill();
                     }
                 }
+
+                ctx.restore();
+            }
+        }
+
+        // 코인(메소) 클래스
+        class Coin {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 6;
+                this.vy = -Math.random() * 8 - 4;
+                this.value = Math.floor(Math.random() * 10) + 5; // 5-14 메소
+                this.life = 600; // 10초 후 사라짐
+                this.bounces = 0;
+                this.collected = false;
+                this.collectFrame = 0;
+            }
+
+            update() {
+                if (this.collected) {
+                    // 플레이어에게 빨려들어가는 효과
+                    const dx = player.x + player.width/2 - this.x;
+                    const dy = player.y + player.height/2 - this.y;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    if (dist < 10) return true; // 수집 완료
+
+                    this.x += dx / dist * 8;
+                    this.y += dy / dist * 8;
+                    this.collectFrame++;
+                    return false;
+                }
+
+                this.vy += game.gravity;
+                this.x += this.vx;
+                this.y += this.vy;
+                this.vx *= 0.98;
+                this.life--;
+
+                // 바닥 충돌
+                for (const p of game.platforms) {
+                    if (this.y + 10 > p.y && this.y + 10 < p.y + p.height + 10 &&
+                        this.x > p.x && this.x < p.x + p.width && this.vy > 0) {
+                        this.y = p.y - 10;
+                        this.vy *= -0.5; // 바운스
+                        this.vx *= 0.8;
+                        this.bounces++;
+                        if (this.bounces > 3) {
+                            this.vy = 0;
+                            this.vx = 0;
+                        }
+                    }
+                }
+
+                // 플레이어 근처면 자동 수집
+                const dx = player.x + player.width/2 - this.x;
+                const dy = player.y + player.height/2 - this.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                if (dist < 100) {
+                    this.collected = true;
+                    game.meso += this.value;
+                }
+
+                return this.life <= 0;
+            }
+
+            draw() {
+                ctx.save();
+                if (this.collected) {
+                    ctx.globalAlpha = 1 - this.collectFrame / 20;
+                } else if (this.life < 120) {
+                    ctx.globalAlpha = (Math.sin(this.life / 10) + 1) / 2; // 깜빡임
+                }
+
+                // 메소 동전
+                ctx.fillStyle = '#ffcc00';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 8, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#ff9900';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // 메소 기호
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 10px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('M', this.x, this.y);
 
                 ctx.restore();
             }
@@ -1169,9 +1344,32 @@
                 this.hp -= finalDmg;
                 this.hitFlash = 10;
 
+                // 콤보 시스템
+                const now = Date.now();
+                if (now - game.lastHitTime < 1000) {
+                    game.combo++;
+                } else {
+                    game.combo = 1;
+                }
+                game.lastHitTime = now;
+
+                // 크리티컬 타격 시 화면 흔들림
+                if (isCrit) {
+                    const intensity = isBackstab ? 8 : 6;
+                    game.screenShake = {
+                        x: (Math.random() - 0.5) * intensity,
+                        y: (Math.random() - 0.5) * intensity,
+                        frames: 10
+                    };
+                    game.hitStop = 3;
+                }
+
                 const color = isBackstab ? '#ff00ff' : (isCrit ? '#ffaa00' : '#ffff00');
                 createDamageText(this.x + this.width/2, this.y, finalDmg + (isCrit ? '!' : ''), color, isCrit, isBackstab);
-                createParticles(this.x + this.width/2, this.y + this.height/2, this.color, 8);
+
+                // 크리티컬 시 더 많은 파티클
+                const particleCount = isCrit ? 20 : 8;
+                createParticles(this.x + this.width/2, this.y + this.height/2, this.color, particleCount, isCrit);
 
                 if (this.hp <= 0) {
                     this.isDead = true;
@@ -1184,6 +1382,16 @@
 
                     player.exp += finalExp;
                     player.kills++;
+
+                    // EXP 텍스트 표시
+                    createExpText(this.x + this.width/2, this.y, finalExp);
+
+                    // 메소 드랍 (1-3개)
+                    const coinCount = Math.floor(Math.random() * 3) + 1;
+                    for (let i = 0; i < coinCount; i++) {
+                        game.coins.push(new Coin(this.x + this.width/2, this.y + this.height/2));
+                    }
+
                     checkLevelUp();
                     updateUI();
                 }
@@ -1444,6 +1652,9 @@
             player.isAttacking = true;
             setTimeout(() => player.isAttacking = false, 200);
 
+            // 스킬명 표시
+            createSkillNameText(skill.name);
+
             const attackMultiplier = player.buffs.rage ? player.buffs.rage.attackBonus : 1;
             const baseDamage = player.attack * skill.damage * attackMultiplier;
 
@@ -1597,7 +1808,7 @@
             }
         }
 
-        function createParticles(x, y, color, count = 10) {
+        function createParticles(x, y, color, count = 10, isCrit = false) {
             for (let i = 0; i < count; i++) {
                 game.particles.push({
                     x, y,
@@ -1605,8 +1816,14 @@
                     vy: (Math.random() - 0.5) * 8 - 3,
                     life: 30,
                     color,
-                    size: Math.random() * 5 + 2
+                    size: Math.random() * 5 + 2,
+                    isStar: isCrit && Math.random() > 0.5
                 });
+            }
+
+            // 크리티컬 버스트 이펙트
+            if (isCrit) {
+                game.effects.push(new Effect('critBurst', x, y, 1, { maxFrames: 15 }));
             }
         }
 
@@ -1616,19 +1833,66 @@
             game.damageTexts.push({ x: x + offsetX, y, damage, color, life: 60, vy: -2, isCrit, isBackstab });
         }
 
+        function createExpText(x, y, exp) {
+            game.damageTexts.push({
+                x, y,
+                damage: `+${exp} EXP`,
+                color: '#ffff00',
+                life: 90,
+                vy: -1.5,
+                isExp: true
+            });
+        }
+
+        function createSkillNameText(skillName) {
+            const job = JOBS[player.job];
+            game.skillNames.push({
+                x: player.x + player.width/2,
+                y: player.y - 20,
+                name: skillName,
+                color: job.color,
+                life: 60,
+                vy: -1
+            });
+        }
+
+        function createHealText(amount, type) {
+            const color = type === 'hp' ? '#44ff44' : '#4444ff';
+            const text = type === 'hp' ? `+${amount} HP` : `+${amount} MP`;
+            game.damageTexts.push({
+                x: player.x + player.width/2,
+                y: player.y,
+                damage: text,
+                color,
+                life: 60,
+                vy: -2,
+                isHeal: true
+            });
+        }
+
         function checkLevelUp() {
             while (player.exp >= player.expToLevel) {
                 player.exp -= player.expToLevel;
                 player.level++;
 
                 const job = JOBS[player.job];
-                player.maxHp += job.hpPerLevel;
+                const hpGain = job.hpPerLevel;
+                const mpGain = job.mpPerLevel;
+
+                player.maxHp += hpGain;
                 player.hp = player.maxHp;
-                player.maxMp += job.mpPerLevel;
+                player.maxMp += mpGain;
                 player.mp = player.maxMp;
                 player.attack += job.attackPerLevel;
                 player.critChance += 0.5; // 레벨당 크리티컬 확률 +0.5%
                 player.expToLevel = Math.floor(player.expToLevel * 1.5);
+
+                // 회복 텍스트 표시
+                createHealText(hpGain, 'hp');
+                setTimeout(() => createHealText(mpGain, 'mp'), 150);
+
+                // 레벨업 빛기둥
+                game.effects.push(new Effect('levelUpPillar', player.x + player.width/2, player.y, 1, { maxFrames: 180 }));
 
                 // 레벨업 텍스트 (레벨 숫자 포함)
                 const levelUpText = document.getElementById('levelUpText');
@@ -1641,7 +1905,7 @@
 
                 // 스탯 증가분 표시
                 const statGainText = document.getElementById('statGainText');
-                statGainText.textContent = `HP +${job.hpPerLevel} | MP +${job.mpPerLevel} | ATK +${job.attackPerLevel} | CRIT +0.5%`;
+                statGainText.textContent = `HP +${hpGain} | MP +${mpGain} | ATK +${job.attackPerLevel} | CRIT +0.5%`;
                 statGainText.style.display = 'block';
                 statGainText.style.animation = 'none';
                 statGainText.offsetHeight;
@@ -1738,12 +2002,82 @@
             }
         }
 
-        function drawPlayer() {
-            ctx.save();
-            if (player.invincible > 0 && Math.floor(player.invincible / 5) % 2 === 0) ctx.globalAlpha = 0.5;
+        function drawMinimap() {
+            const mapX = canvas.width - 160;
+            const mapY = 10;
+            const mapW = 150;
+            const mapH = 100;
+            const scale = 1 / 6.67;
 
+            ctx.save();
+
+            // 배경
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+            ctx.fillRect(mapX, mapY, mapW, mapH);
+            ctx.strokeStyle = '#555';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(mapX, mapY, mapW, mapH);
+
+            // 플랫폼
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 1;
+            for (const p of game.platforms) {
+                const x = mapX + p.x * scale;
+                const y = mapY + p.y * scale;
+                const w = p.width * scale;
+                const h = p.height * scale;
+                ctx.strokeRect(x, y, w, h);
+            }
+
+            // 몬스터 (빨간 점)
+            ctx.fillStyle = '#ff4444';
+            for (const m of game.monsters) {
+                if (!m.isDead) {
+                    ctx.beginPath();
+                    ctx.arc(mapX + (m.x + m.width/2) * scale, mapY + (m.y + m.height/2) * scale, 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            // 플레이어 (파란 점)
+            ctx.fillStyle = '#4444ff';
+            ctx.beginPath();
+            ctx.arc(mapX + (player.x + player.width/2) * scale, mapY + (player.y + player.height/2) * scale, 3, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        function drawPlayer() {
             const px = player.x, py = player.y, dir = player.direction;
             const job = JOBS[player.job];
+
+            // 그림자 (점프 높이에 반비례)
+            const groundY = 500;
+            const jumpHeight = Math.max(0, groundY - (py + player.height));
+            const shadowSize = Math.max(15, 30 - jumpHeight / 10);
+            ctx.save();
+            ctx.globalAlpha = 0.3;
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.ellipse(px + player.width/2, groundY, shadowSize, shadowSize/2, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            // 잔상 효과 (헤이스트 버프 시)
+            if (player.buffs.haste && player.buffs.haste.duration > 0 && player.trail.length > 0) {
+                for (let i = 0; i < player.trail.length; i++) {
+                    const t = player.trail[i];
+                    ctx.save();
+                    ctx.globalAlpha = 0.2 * (i / player.trail.length);
+                    ctx.fillStyle = job.color;
+                    ctx.fillRect(t.x + 8, t.y + 20, 24, 30);
+                    ctx.restore();
+                }
+            }
+
+            ctx.save();
+            if (player.invincible > 0 && Math.floor(player.invincible / 5) % 2 === 0) ctx.globalAlpha = 0.5;
 
             ctx.translate(px + player.width/2, py);
             ctx.scale(dir, 1);
@@ -1854,6 +2188,41 @@
                 return;
             }
 
+            // 히트스톱 (크리티컬 타격 시 프레임 정지)
+            if (game.hitStop > 0) {
+                game.hitStop--;
+                drawBackground();
+                drawPlayer();
+                for (const m of game.monsters) m.draw();
+                for (const e of game.effects) e.draw();
+                for (const p of game.projectiles) p.draw();
+                for (const c of game.coins) c.draw();
+                requestAnimationFrame(gameLoop);
+                return;
+            }
+
+            // 콤보 리셋 체크
+            if (game.combo > 0 && Date.now() - game.lastHitTime > 1000) {
+                game.combo = 0;
+            }
+
+            // 화면 흔들림 감소
+            if (game.screenShake.frames > 0) {
+                game.screenShake.frames--;
+                if (game.screenShake.frames === 0) {
+                    game.screenShake.x = 0;
+                    game.screenShake.y = 0;
+                }
+            }
+
+            // 플레이어 잔상 업데이트 (헤이스트 버프 시)
+            if (player.buffs.haste && player.buffs.haste.duration > 0) {
+                player.trail.push({ x: player.x, y: player.y });
+                if (player.trail.length > 3) player.trail.shift();
+            } else {
+                player.trail = [];
+            }
+
             // MP 자동 회복
             if (player.mp < player.maxMp) player.mp += 0.05;
 
@@ -1921,6 +2290,7 @@
             game.monsters = game.monsters.filter(m => !m.update());
             game.projectiles = game.projectiles.filter(p => !p.update());
             game.effects = game.effects.filter(e => !e.update());
+            game.coins = game.coins.filter(c => !c.update());
 
             game.particles = game.particles.filter(p => {
                 p.x += p.vx;
@@ -1936,6 +2306,12 @@
                 return t.life > 0;
             });
 
+            game.skillNames = game.skillNames.filter(s => {
+                s.y += s.vy;
+                s.life--;
+                return s.life > 0;
+            });
+
             // 사망
             if (player.hp <= 0) {
                 player.hp = player.maxHp;
@@ -1947,19 +2323,45 @@
             }
 
             // 렌더링
+            ctx.save();
+
+            // 화면 흔들림 적용
+            if (game.screenShake.frames > 0) {
+                ctx.translate(game.screenShake.x, game.screenShake.y);
+            }
+
             drawBackground();
             for (const monster of game.monsters) monster.draw();
+            for (const coin of game.coins) coin.draw();
             drawPlayer();
             for (const proj of game.projectiles) proj.draw();
             for (const effect of game.effects) effect.draw();
+
+            ctx.restore();
 
             // 파티클
             for (const p of game.particles) {
                 ctx.globalAlpha = p.life / 30;
                 ctx.fillStyle = p.color;
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-                ctx.fill();
+
+                if (p.isStar) {
+                    // 별 모양 파티클
+                    ctx.beginPath();
+                    for (let i = 0; i < 8; i++) {
+                        const angle = (i * Math.PI) / 4;
+                        const radius = i % 2 === 0 ? p.size : p.size/2;
+                        const px = p.x + Math.cos(angle - Math.PI / 2) * radius;
+                        const py = p.y + Math.sin(angle - Math.PI / 2) * radius;
+                        if (i === 0) ctx.moveTo(px, py);
+                        else ctx.lineTo(px, py);
+                    }
+                    ctx.closePath();
+                    ctx.fill();
+                } else {
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
             }
             ctx.globalAlpha = 1;
 
@@ -1968,11 +2370,13 @@
                 ctx.globalAlpha = t.life / 60;
                 ctx.fillStyle = t.color;
 
-                // 크리티컬: 폰트 크기 1.5배, 백스탭: 볼드체 강화
+                // 크리티컬: 폰트 크기 1.5배, 백스탭: 볼드체 강화, EXP: 크게, 회복: 중간
                 let fontSize = 20;
                 let fontWeight = 'bold';
-                if (t.isCrit) fontSize = 30; // 크리티컬은 1.5배 크기
-                if (t.isBackstab) fontWeight = '900'; // 백스탭은 더 굵게
+                if (t.isCrit) fontSize = 30;
+                if (t.isBackstab) fontWeight = '900';
+                if (t.isExp) fontSize = 24;
+                if (t.isHeal) fontSize = 22;
 
                 ctx.font = `${fontWeight} ${fontSize}px Arial`;
                 ctx.textAlign = 'center';
@@ -1986,6 +2390,52 @@
                 ctx.fillText(t.damage, t.x, t.y);
             }
             ctx.globalAlpha = 1;
+
+            // 스킬명 텍스트
+            for (const s of game.skillNames) {
+                ctx.globalAlpha = s.life / 60;
+                ctx.fillStyle = s.color;
+                ctx.font = 'bold 18px Arial';
+                ctx.textAlign = 'center';
+
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 3;
+                ctx.strokeText(s.name, s.x, s.y);
+                ctx.fillText(s.name, s.x, s.y);
+            }
+            ctx.globalAlpha = 1;
+
+            // 콤보 카운터 (우상단)
+            if (game.combo > 0) {
+                const comboColor = game.combo >= 30 ? '#ff4444' : (game.combo >= 10 ? '#ffaa00' : '#ffffff');
+                const comboScale = 1 + Math.sin(Date.now() / 100) * 0.1;
+
+                ctx.save();
+                ctx.translate(canvas.width - 80, 40);
+                ctx.scale(comboScale, comboScale);
+                ctx.translate(-canvas.width + 80, -40);
+
+                ctx.fillStyle = comboColor;
+                ctx.font = 'bold 32px Arial';
+                ctx.textAlign = 'right';
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 3;
+                ctx.strokeText(`${game.combo} COMBO!`, canvas.width - 20, 40);
+                ctx.fillText(`${game.combo} COMBO!`, canvas.width - 20, 40);
+                ctx.restore();
+            }
+
+            // 메소 카운터 (우상단, 콤보 아래)
+            ctx.fillStyle = '#ffcc00';
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'right';
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2;
+            ctx.strokeText(`💰 메소: ${game.meso}`, canvas.width - 20, 70);
+            ctx.fillText(`💰 메소: ${game.meso}`, canvas.width - 20, 70);
+
+            // 미니맵
+            drawMinimap();
 
             requestAnimationFrame(gameLoop);
         }

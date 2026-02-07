@@ -8,7 +8,21 @@
       "Bash(gh repo create:*)",
       "Bash(git commit:*)",
       "Bash(git push:*)",
-      "Bash(start \"\" \"game.html\")"
+      "Bash(start \"\" \"game.html\")",
+      "Bash(start \"\" \"C:\\\\claude-code\\\\game\\\\game.html\")",
+      "Bash(start:*)",
+      "Bash(timeout:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(ping:*)",
+      "Bash(dir:*)",
+      "Bash(tasklist:*)",
+      "Bash(cd:*)",
+      "Bash(python -m http.server:*)",
+      "Bash(curl:*)",
+      "Bash(echo:*)",
+      "Bash(python scripts/server.py:*)",
+      "Bash(node -e:*)"
     ]
   }
 }

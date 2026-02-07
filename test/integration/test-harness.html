@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MapleQuest RPG - Integration Test</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <style>
+        body {
+            background: #1a1a2e;
+            color: #fff;
+        }
+        .test-panel {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            width: 400px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #44ff66;
+            border-radius: 10px;
+            padding: 15px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 90vh;
+            overflow-y: auto;
+            z-index: 10000;
+        }
+        .test-panel h2 {
+            margin: 0 0 10px 0;
+            color: #44ff66;
+            font-size: 16px;
+        }
+        .test-button {
+            background: #44ff66;
+            color: #000;
+            border: none;
+            padding: 8px 15px;
+            margin: 5px 5px 5px 0;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 11px;
+        }
+        .test-button:hover {
+            background: #66ffaa;
+        }
+        .test-button:active {
+            transform: scale(0.95);
+        }
+        .test-log {
+            background: #000;
+            padding: 10px;
+            border-radius: 5px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 10px;
+            font-size: 11px;
+            line-height: 1.4;
+        }
+        .test-log div {
+            padding: 2px 0;
+            border-bottom: 1px solid #333;
+        }
+        .test-status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            background: #2a2a3e;
+        }
+        .status-pass { color: #44ff66; }
+        .status-fail { color: #ff4444; }
+        .status-warn { color: #ffaa44; }
+        .status-running { color: #44aaff; }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <canvas id="gameCanvas" width="1000" height="600"></canvas>
+
+        <div class="job-select" id="jobSelect">
+            <h1>직업을 선택하세요</h1>
+            <p>각 직업은 고유한 스탯과 스킬을 가지고 있습니다</p>
+            <div class="job-cards">
+                <div class="job-card warrior" data-job="warrior">
+                    <h2 style="color: #ff6644">전사</h2>
+                    <div class="job-icon">⚔️</div>
+                    <div class="job-stats">
+                        <div>❤️ HP: ★★★★★</div>
+                        <div>⚡ 속도: ★★☆☆☆</div>
+                        <div>💪 공격력: ★★★★☆</div>
+                        <div style="color: #ff6644; margin-top: 10px;">
+                            <b>스킬:</b><br>
+                            [A] 기본공격 - 검 휘두르기<br>
+                            [Z] 💥 파워 스트라이크<br>
+                            [X] 🌀 슬래시 블래스트<br>
+                            [C] 😤 레이지 (버프)
+                        </div>
+                    </div>
+                </div>
+                <div class="job-card thief" data-job="thief">
+                    <h2 style="color: #aa44ff">도적</h2>
+                    <div class="job-icon">🗡️</div>
+                    <div class="job-stats">
+                        <div>❤️ HP: ★★★☆☆</div>
+                        <div>⚡ 속도: ★★★★★</div>
+                        <div>💪 공격력: ★★★☆☆</div>
+                        <div style="color: #aa44ff; margin-top: 10px;">
+                            <b>스킬:</b><br>
+                            [A] 기본공격 - 단검 난무<br>
+                            [Z] ⚡ 삼중 스탭<br>
+                            [X] 💀 어쌔시네이트<br>
+                            [C] 💨 헤이스트 (버프)
+                        </div>
+                    </div>
+                </div>
+                <div class="job-card archer" data-job="archer">
+                    <h2 style="color: #44ff66">궁수</h2>
+                    <div class="job-icon">🏹</div>
+                    <div class="job-stats">
+                        <div>❤️ HP: ★★☆☆☆</div>
+                        <div>⚡ 속도: ★★★☆☆</div>
+                        <div>💪 공격력: ★★★★★</div>
+                        <div style="color: #44ff66; margin-top: 10px;">
+                            <b>스킬:</b><br>
+                            [A] 기본공격 - 화살 발사<br>
+                            [Z] ➹ 더블 샷<br>
+                            [X] 🌧️ 애로우 레인<br>
+                            [C] ✨ 소울 애로우 (버프)
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="ui-overlay" id="gameUI" style="display: none;">
+            <div><span id="jobIcon">⚔️</span> Lv. <span id="level">1</span> <span id="jobName">전사</span></div>
+            <div class="stat-bar"><div class="hp-fill" id="hpBar" style="width: 100%"></div></div>
+            <div style="font-size: 12px">HP: <span id="hpText">100/100</span></div>
+            <div class="stat-bar"><div class="mp-fill" id="mpBar" style="width: 100%"></div></div>
+            <div style="font-size: 12px">MP: <span id="mpText">50/50</span></div>
+            <div class="stat-bar"><div class="exp-fill" id="expBar" style="width: 0%"></div></div>
+            <div style="font-size: 12px">EXP: <span id="expText">0/100</span></div>
+            <div style="margin-top: 10px">⚔️ 공격력: <span id="attack">10</span></div>
+            <div>💥 크리티컬: <span id="crit">10</span>%</div>
+            <div>💀 처치: <span id="kills">0</span></div>
+        </div>
+
+        <div class="buff-bar" id="buffBar"></div>
+        <div class="skill-bar" id="skillBar"></div>
+        <div class="controls" id="controlsUI" style="display: none;">
+            [←→] 이동 | [↑/Space] 점프 | [A] 기본공격 | [Z][X][C] 스킬
+        </div>
+        <div class="level-up" id="levelUpText">LEVEL UP!</div>
+        <div class="stat-gain" id="statGainText"></div>
+    </div>
+
+    <!-- Test Control Panel -->
+    <div class="test-panel" id="testPanel">
+        <h2>🧪 Integration Test Control</h2>
+
+        <div>
+            <button class="test-button" onclick="runQuickTest()">Quick Test (All Jobs)</button>
+            <button class="test-button" onclick="runWarriorTest()">Test Warrior</button>
+            <button class="test-button" onclick="runThiefTest()">Test Thief</button>
+            <button class="test-button" onclick="runArcherTest()">Test Archer</button>
+        </div>
+
+        <div class="test-status" id="testStatus">
+            <div>Status: <span class="status-running">Ready</span></div>
+            <div>Tests Passed: <span id="passCount">0</span></div>
+            <div>Tests Failed: <span id="failCount">0</span></div>
+            <div>Pass Rate: <span id="passRate">0%</span></div>
+        </div>
+
+        <div class="test-log" id="testLog">
+            <div>Console output will appear here...</div>
+        </div>
+
+        <button class="test-button" onclick="clearLog()" style="margin-top: 10px;">Clear Log</button>
+        <button class="test-button" onclick="togglePanel()">Hide Panel</button>
+    </div>
+
+    <!-- Game Scripts -->
+    <script type="module">
+        // Import game modules
+        import { game, player } from '../../src/state.js';
+        import { JOBS } from '../../data/jobs.js';
+
+        // Expose to global scope for testing
+        window.__game = game;
+        window.__player = player;
+        window.__JOBS = JOBS;
+
+        console.log('✅ Game state exposed for testing');
+    </script>
+
+    <script type="module" src="../../src/main.js"></script>
+
+    <!-- Test Script -->
+    <script src="./integration-test.js"></script>
+
+    <!-- Test UI Controls -->
+    <script>
+        // Intercept console.log for test panel
+        const originalLog = console.log;
+        const originalError = console.error;
+        const testLog = document.getElementById('testLog');
+
+        function addToLog(message, type = 'info') {
+            const div = document.createElement('div');
+            const timestamp = new Date().toLocaleTimeString();
+            div.innerHTML = `<span style="color: #888">${timestamp}</span> ${message}`;
+            if (type === 'error') div.style.color = '#ff4444';
+            if (type === 'success') div.style.color = '#44ff66';
+            if (type === 'warn') div.style.color = '#ffaa44';
+            testLog.appendChild(div);
+            testLog.scrollTop = testLog.scrollHeight;
+        }
+
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addToLog(args.join(' '));
+        };
+
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addToLog(args.join(' '), 'error');
+        };
+
+        // Test runners
+        async function runQuickTest() {
+            addToLog('Starting quick test for all jobs...', 'info');
+            updateStatus('running', 'Running tests...');
+
+            for (const job of ['warrior', 'thief', 'archer']) {
+                addToLog(`\n=== Testing ${job.toUpperCase()} ===`, 'info');
+                const results = await runIntegrationTests(job);
+                updateResults(results);
+
+                if (job !== 'archer') {
+                    addToLog('Reloading for next job...', 'info');
+                    await new Promise(r => setTimeout(r, 1000));
+                    location.reload();
+                    await new Promise(r => setTimeout(r, 2000));
+                }
+            }
+
+            updateStatus('complete', 'All tests complete!');
+        }
+
+        async function runWarriorTest() {
+            await runSingleJobTest('warrior');
+        }
+
+        async function runThiefTest() {
+            await runSingleJobTest('thief');
+        }
+
+        async function runArcherTest() {
+            await runSingleJobTest('archer');
+        }
+
+        async function runSingleJobTest(job) {
+            addToLog(`\nStarting integration test for ${job}...`, 'info');
+            updateStatus('running', `Testing ${job}...`);
+
+            const results = await runIntegrationTests(job);
+            updateResults(results);
+            updateStatus('complete', 'Test complete!');
+        }
+
+        function updateResults(results) {
+            document.getElementById('passCount').textContent = results.passed.length;
+            document.getElementById('failCount').textContent = results.failed.length;
+
+            const total = results.passed.length + results.failed.length;
+            const rate = total > 0 ? ((results.passed.length / total) * 100).toFixed(1) : 0;
+            document.getElementById('passRate').textContent = rate + '%';
+        }
+
+        function updateStatus(status, message) {
+            const statusEl = document.querySelector('#testStatus .status-running');
+            statusEl.textContent = message;
+            statusEl.className = status === 'running' ? 'status-running' :
+                                status === 'complete' ? 'status-pass' : 'status-fail';
+        }
+
+        function clearLog() {
+            testLog.innerHTML = '<div>Log cleared.</div>';
+        }
+
+        function togglePanel() {
+            const panel = document.getElementById('testPanel');
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // Make functions global
+        window.runQuickTest = runQuickTest;
+        window.runWarriorTest = runWarriorTest;
+        window.runThiefTest = runThiefTest;
+        window.runArcherTest = runArcherTest;
+        window.clearLog = clearLog;
+        window.togglePanel = togglePanel;
+    </script>
+</body>
+</html>

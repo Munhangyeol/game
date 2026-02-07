@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MapleQuest RPG</title>
+    <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+    <div class="game-container">
+        <canvas id="gameCanvas" width="1000" height="600"></canvas>
+
+        <div class="job-select" id="jobSelect">
+            <h1>직업을 선택하세요</h1>
+            <p>각 직업은 고유한 스탯과 스킬을 가지고 있습니다</p>
+            <div class="job-cards">
+                <div class="job-card warrior" data-job="warrior">
+                    <h2 style="color: #ff6644">전사</h2>
+                    <div class="job-icon">⚔️</div>
+                    <div class="job-stats">
+                        <div>❤️ HP: ★★★★★</div>
+                        <div>⚡ 속도: ★★☆☆☆</div>
+                        <div>💪 공격력: ★★★★☆</div>
+                        <div style="color: #ff6644; margin-top: 10px;">
+                            <b>스킬:</b><br>
+                            [A] 기본공격 - 검 휘두르기<br>
+                            [Z] 💥 파워 스트라이크<br>
+                            [X] 🌀 슬래시 블래스트<br>
+                            [C] 😤 레이지 (버프)
+                        </div>
+                    </div>
+                </div>
+                <div class="job-card thief" data-job="thief">
+                    <h2 style="color: #aa44ff">도적</h2>
+                    <div class="job-icon">🗡️</div>
+                    <div class="job-stats">
+                        <div>❤️ HP: ★★★☆☆</div>
+                        <div>⚡ 속도: ★★★★★</div>
+                        <div>💪 공격력: ★★★☆☆</div>
+                        <div style="color: #aa44ff; margin-top: 10px;">
+                            <b>스킬:</b><br>
+                            [A] 기본공격 - 단검 난무<br>
+                            [Z] ⚡ 삼중 스탭<br>
+                            [X] 💀 어쌔시네이트<br>
+                            [C] 💨 헤이스트 (버프)
+                        </div>
+                    </div>
+                </div>
+                <div class="job-card archer" data-job="archer">
+                    <h2 style="color: #44ff66">궁수</h2>
+                    <div class="job-icon">🏹</div>
+                    <div class="job-stats">
+                        <div>❤️ HP: ★★☆☆☆</div>
+                        <div>⚡ 속도: ★★★☆☆</div>
+                        <div>💪 공격력: ★★★★★</div>
+                        <div style="color: #44ff66; margin-top: 10px;">
+                            <b>스킬:</b><br>
+                            [A] 기본공격 - 화살 발사<br>
+                            [Z] ➹ 더블 샷<br>
+                            [X] 🌧️ 애로우 레인<br>
+                            [C] ✨ 소울 애로우 (버프)
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="ui-overlay" id="gameUI" style="display: none;">
+            <div><span id="jobIcon">⚔️</span> Lv. <span id="level">1</span> <span id="jobName">전사</span></div>
+            <div class="stat-bar"><div class="hp-fill" id="hpBar" style="width: 100%"></div></div>
+            <div style="font-size: 12px">HP: <span id="hpText">100/100</span></div>
+            <div class="stat-bar"><div class="mp-fill" id="mpBar" style="width: 100%"></div></div>
+            <div style="font-size: 12px">MP: <span id="mpText">50/50</span></div>
+            <div class="stat-bar"><div class="exp-fill" id="expBar" style="width: 0%"></div></div>
+            <div style="font-size: 12px">EXP: <span id="expText">0/100</span></div>
+            <div style="margin-top: 10px">⚔️ 공격력: <span id="attack">10</span></div>
+            <div>💥 크리티컬: <span id="crit">10</span>%</div>
+            <div>💀 처치: <span id="kills">0</span></div>
+        </div>
+
+        <div class="buff-bar" id="buffBar"></div>
+        <div class="skill-bar" id="skillBar"></div>
+        <div class="controls" id="controlsUI" style="display: none;">
+            [←→] 이동 | [↑/Space] 점프 | [A] 기본공격 | [Z][X][C] 스킬
+        </div>
+        <div class="level-up" id="levelUpText">LEVEL UP!</div>
+        <div class="stat-gain" id="statGainText"></div>
+    </div>
+
+    <script type="module" src="../src/main.js"></script>
+</body>
+</html>
