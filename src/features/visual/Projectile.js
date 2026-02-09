@@ -1,4 +1,5 @@
 import { canvas, ctx, game, player } from '../../core/game/GameState.js';
+import { Effect } from './Effect.js';
 
 // 투사체 클래스
 export class Projectile {
@@ -25,12 +26,23 @@ export class Projectile {
         this.y += this.vy;
         this.life--;
 
-        if (this.x < -50 || this.x > canvas.width + 50) return true;
+        if (this.x < -50 || this.x > canvas.width + 50) {
+            if (this.isExplosive) {
+                this.explode();
+            }
+            return true;
+        }
 
         for (const monster of game.monsters) {
             if (!monster.isDead && !this.hitMonsters.has(monster) &&
                 this.x > monster.x && this.x < monster.x + monster.width &&
                 this.y > monster.y && this.y < monster.y + monster.height) {
+
+                if (this.isExplosive) {
+                    this.explode();
+                    return true;
+                }
+
                 const isCrit = Math.random() * 100 < player.critChance;
                 monster.takeDamage(this.damage, isCrit);
                 this.hitMonsters.add(monster);
@@ -42,6 +54,39 @@ export class Projectile {
         }
 
         return this.life <= 0;
+    }
+
+    explode() {
+        // Create explosion effect
+        game.effects.push(new Effect('explosiveArrowBlast', this.x, this.y, 1, { maxFrames: 30 }));
+
+        // AoE damage
+        const radius = this.explosionRadius || 80;
+        for (const monster of game.monsters) {
+            if (!monster.isDead) {
+                const dx = monster.x + monster.width/2 - this.x;
+                const dy = monster.y + monster.height/2 - this.y;
+                const distance = Math.sqrt(dx*dx + dy*dy);
+
+                if (distance < radius) {
+                    const isCrit = Math.random() * 100 < player.critChance;
+                    monster.takeDamage(this.damage, isCrit);
+                }
+            }
+        }
+
+        // Explosion particles
+        for (let i = 0; i < 30; i++) {
+            game.particles.push({
+                x: this.x,
+                y: this.y,
+                vx: (Math.random() - 0.5) * 10,
+                vy: (Math.random() - 0.5) * 10,
+                life: 40,
+                color: i % 3 === 0 ? '#ff6600' : (i % 3 === 1 ? '#ffaa00' : '#ff0000'),
+                size: Math.random() * 6 + 3
+            });
+        }
     }
 
     draw() {

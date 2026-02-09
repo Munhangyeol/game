@@ -5,8 +5,14 @@ import { updateUI } from '../components/HUD.js';
 
 // 직업 선택
 export function selectJob(jobId) {
+    console.log(`[JobSelect] Selecting job: ${jobId}`);
     const job = JOBS[jobId];
+    if (!job) {
+        console.error(`[JobSelect] ERROR: Invalid job ID: ${jobId}`);
+        return;
+    }
     player.job = jobId;
+    console.log(`[JobSelect] Job set successfully: ${player.job}`);
     player.maxHp = job.baseHp;
     player.hp = job.baseHp;
     player.maxMp = job.baseMp;

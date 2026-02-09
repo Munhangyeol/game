@@ -1,9 +1,11 @@
 import { player } from '../../core/game/GameState.js';
 import { JOBS } from '../../../data/jobs.js';
+import { showSkillTooltip, hideSkillTooltip } from './SkillTooltip.js';
 
 export function createSkillBar() {
     const skillBar = document.getElementById('skillBar');
     const job = JOBS[player.job];
+    const currentTier = job.tiers[player.tier];  // NEW: Get current tier
     skillBar.innerHTML = '';
 
     // 기본 공격 슬롯
@@ -19,9 +21,21 @@ export function createSkillBar() {
     basicCanvas.width = 50;
     basicCanvas.height = 50;
     basicSlot.appendChild(basicCanvas);
+
+    // 툴팁 이벤트 추가
+    basicSlot.addEventListener('mouseenter', (e) => {
+        showSkillTooltip(-1, e.clientX, e.clientY);
+    });
+    basicSlot.addEventListener('mousemove', (e) => {
+        showSkillTooltip(-1, e.clientX, e.clientY);
+    });
+    basicSlot.addEventListener('mouseleave', () => {
+        hideSkillTooltip();
+    });
+
     skillBar.appendChild(basicSlot);
 
-    job.skills.forEach((skill, i) => {
+    currentTier.skills.forEach((skill, i) => {  // MODIFIED: Use tier-based skills
         const slot = document.createElement('div');
         slot.className = 'skill-slot ready';
         slot.id = `skill${i}`;
@@ -33,12 +47,25 @@ export function createSkillBar() {
         canvas.width = 50;
         canvas.height = 50;
         slot.appendChild(canvas);
+
+        // 툴팁 이벤트 추가
+        slot.addEventListener('mouseenter', (e) => {
+            showSkillTooltip(i, e.clientX, e.clientY);
+        });
+        slot.addEventListener('mousemove', (e) => {
+            showSkillTooltip(i, e.clientX, e.clientY);
+        });
+        slot.addEventListener('mouseleave', () => {
+            hideSkillTooltip();
+        });
+
         skillBar.appendChild(slot);
     });
 }
 
 export function updateSkillBar() {
     const job = JOBS[player.job];
+    const currentTier = job.tiers[player.tier];  // NEW: Get current tier
 
     // 기본 공격 쿨다운
     const basicSlot = document.getElementById('basicAttack');
@@ -54,7 +81,7 @@ export function updateSkillBar() {
         }
     }
 
-    job.skills.forEach((skill, i) => {
+    currentTier.skills.forEach((skill, i) => {  // MODIFIED: Use tier-based skills
         const slot = document.getElementById(`skill${i}`);
         const canvas = slot.querySelector('canvas.cd-overlay');
         const cooldown = player.skillCooldowns[i];

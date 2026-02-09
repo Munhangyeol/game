@@ -2,7 +2,10 @@ import { canvas, game, player } from '../../core/game/GameState.js';
 
 export function handlePlayerMovement() {
     // 이동
-    let currentSpeed = player.speed * (player.buffs.haste ? player.buffs.haste.speedBonus : 1);
+    let speedBonus = 1;
+    if (player.buffs.haste) speedBonus = player.buffs.haste.speedBonus;
+    if (player.buffs.swiftness) speedBonus = player.buffs.swiftness.speedBonus;
+    let currentSpeed = player.speed * speedBonus;
     if (game.keys['ArrowLeft']) {
         player.vx = -currentSpeed;
         player.direction = -1;
@@ -38,7 +41,7 @@ export function handlePlayerMovement() {
     if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
     if (player.y > canvas.height) {
         player.y = 100;
-        player.hp -= 20;
+        // No HP penalty for falling
         // UI update is handled in game loop
     }
 }

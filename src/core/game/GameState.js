@@ -12,6 +12,7 @@ if (!ctx) {
 // 게임 상태
 export const game = {
     started: false,
+    paused: false,
     gravity: 0.6,
     platforms: [
         { x: 0, y: 500, width: 1000, height: 100 },
@@ -37,6 +38,8 @@ export const game = {
     screenShake: { x: 0, y: 0, frames: 0 },
     hitStop: 0,
     meso: 0,
+    playTime: 0, // Play time in frames (60fps)
+    critCount: 0, // Critical hits count
     effectClass: null, // Will be set in main.js to avoid circular dependencies
 };
 
@@ -51,7 +54,7 @@ export const player = {
     direction: 1,
     isAttacking: false,
     attackCooldown: 0,
-    hp: 100, maxHp: 100,
+    hp: 200, maxHp: 200,
     mp: 50, maxMp: 50,
     exp: 0, expToLevel: 100,
     level: 1,
@@ -60,6 +63,7 @@ export const player = {
     kills: 0,
     invincible: 0,
     job: null,
+    tier: 0,  // NEW: Tracks promotion level (0-3)
     skillCooldowns: [0, 0, 0],
     buffs: {},
     trail: [],

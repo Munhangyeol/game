@@ -22,7 +22,13 @@
       "Bash(curl:*)",
       "Bash(echo:*)",
       "Bash(python scripts/server.py:*)",
-      "Bash(node -e:*)"
+      "Bash(node -e:*)",
+      "Bash(scriptsserver.bat)",
+      "Bash(taskkill:*)",
+      "Bash(npm test:*)",
+      "Bash(npm create vite@latest game-phaser -- --template vanilla-ts)",
+      "Bash(npx http-server -p 8000 -c-1)",
+      "Bash(npx http-server:*)"
     ]
   }
 }

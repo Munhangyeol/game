@@ -357,20 +357,59 @@ game/
 
 ---
 
-### Phase 3 — 전직 구조 및 초변직 (Lv10)
+### Phase 3 — 전직 구조 및 초변직 (Lv10) ✅ **완료** (2026-02-08)
 
 목표: `JOBS` 구조를 tiers로 확장하고, Lv10 초변직까지의 전체 인프라와 스킬을 구현.
 
-- [ ] `JOBS` 객체를 `tiers` 배열 구조로 변경 (warrior·thief·archer 각각 tier 0~3 배열)
-- [ ] `player.tier` 속성 추가 및 초기값 0으로 설정
-- [ ] `checkLevelUp()` 내에 `PROMOTION_LEVELS = [10, 30, 70]` 확인 로직과 전직 트리거 구현
-- [ ] 전직 축하 팝업 UI (`showPromotionUI()`) 및 레벨업보다 강한 파티클 이펚트 구현
-- [ ] 초변직 스킬 — 전사군: 강타+ (피해↑·밀치기↑), 실드 타격 (카운터 반격), 성스러운 빛 (HP 회복 버프)
-- [ ] 초변직 스킬 — 도적군: 사중 스탭 (히트↑), 스텔스 백스탭 (무형화 후 강타), 신속 (속도 강화↑)
-- [ ] 초변직 스킬 — 궁수군: 트리플 샷 (화살 3발), 폭발 화살 (폭발 범위 피해), 예리한 시선 (크리율↑ 버프)
-- [ ] `createSkillBar()`를 `JOBS[player.job].tiers[player.tier].skills`로 참조하도록 갱신
+- [x] `JOBS` 객체를 `tiers` 배열 구조로 변경 (warrior·thief·archer 각각 tier 0~3 배열)
+- [x] `player.tier` 속성 추가 및 초기값 0으로 설정
+- [x] `checkLevelUp()` 내에 `PROMOTION_LEVELS = [10, 30, 70]` 확인 로직과 전직 트리거 구현
+- [x] 전직 축하 팝업 UI (`showPromotionUI()`) 및 레벨업보다 강한 파티클 이펚트 구현
+- [x] 초변직 스킬 — 전사군: 강타+ (피해↑·밀치기↑), 실드 타격 (카운터 반격), 성스러운 빛 (HP 회복 버프)
+- [x] 초변직 스킬 — 도적군: 사중 스탭 (히트↑), 스텔스 백스탭 (무형화 후 강타), 신속 (속도 강화↑)
+- [x] 초변직 스킬 — 궁수군: 트리플 샷 (화살 3발), 폭발 화살 (폭발 범위 피해), 예리한 시선 (크리율↑ 버프)
+- [x] `createSkillBar()`를 `JOBS[player.job].tiers[player.tier].skills`로 참조하도록 갱신
 
 의존: Phase 1 (스탯 부스 수치가 확정되어야 전직 시 적용 가능), Phase 2 (UI 인프라 완성 후)
+
+**구현 내용:**
+- **데이터 구조 변환** (data/jobs.js): 각 직업에 `tiers[]` 배열 추가, 4단계 구조 (0: 기본직, 1: 초변직, 2-3: 빈 슬롯)
+- **플레이어 상태** (GameState.js): `player.tier = 0` 속성 추가
+- **전직 로직** (LevelingSystem.js):
+  - 레벨 10/30/70 도달 시 자동 전직
+  - 전직 시 보너스 스탯 즉시 적용 (HP/MP 대폭 증가)
+  - `showPromotionUI()`: 황금 빛기둥 + 100개 파티클 + 전직 팝업 UI
+  - HUD 직업명/아이콘 자동 업데이트
+- **스킬 시스템 확장** (CombatSystem.js):
+  - `useSkill()`: 티어별 스킬 참조로 변경
+  - 9개 새 스킬 타입 추가 (powerStrikePlus, shieldCounter, quadStab, stealthBackstab, tripleShot, explosiveArrow 등)
+  - 6개 새 perform 함수 구현
+- **버프 시스템** (GameLoop.js, CombatSystem.js):
+  - holyLight: 초당 5 HP 회복 + 공격력 1.2배
+  - swiftness: 이동속도 1.8배 버프 (MovementSystem.js)
+  - keenEyes: 크리티컬 +15% (적용/해제 로직)
+  - shieldCounter: 피해 감소 50% 버프
+- **시각 효과** (Effect.js): 10개 새 이펙트 타입 추가
+  - promotionPillar, powerStrikePlus, shieldCounter, holyLightActivate
+  - quadStab, stealthActivate, stealthBackstab
+  - tripleShot, explosiveArrowCharge, explosiveArrowBlast
+- **투사체 시스템** (Projectile.js): 폭발형 화살 지원 (`explode()` 메서드, 범위 데미지)
+- **UI 개선** (index.html, style.css):
+  - 전직 팝업 HTML/CSS 추가
+  - 전직 애니메이션 (promotionAppear)
+  - 스킬바 자동 갱신 로직
+
+**테스트 방법:**
+```javascript
+// 콘솔에서 빠른 전직 테스트
+player.level = 9;
+player.exp = player.expToLevel;
+
+// 레벨 10 도달하면 자동 전직
+// - 황금 빛기둥 확인
+// - 전직 팝업 표시 (새 직업명, 스킬 목록)
+// - 스킬바 새 스킬로 변경 확인
+```
 
 ---
 

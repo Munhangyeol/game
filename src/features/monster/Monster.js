@@ -1,5 +1,8 @@
 import { canvas, ctx, game, player } from '../../core/game/GameState.js';
 import { Coin } from '../visual/Coin.js';
+import { updateQuestProgress } from '../quest/QuestSystem.js';
+import { checkAchievement } from '../achievement/AchievementSystem.js';
+import { logKill } from '../../ui/components/ChatLog.js';
 
 // 몬스터 클래스
 export class Monster {
@@ -10,9 +13,12 @@ export class Monster {
         this.spawnLevel = player.level; // 생성 시점 플레이어 레벨 저장
 
         const monsterTypes = {
-            slime: { width: 50, height: 40, hp: 30 + player.level * 10, damage: 8 + player.level * 2, exp: 25, color: '#44dd44' },
-            mushroom: { width: 55, height: 50, hp: 50 + player.level * 15, damage: 12 + player.level * 3, exp: 40, color: '#dd4444' },
-            stump: { width: 60, height: 55, hp: 80 + player.level * 20, damage: 15 + player.level * 4, exp: 60, color: '#8B4513' }
+            slime: { width: 50, height: 40, hp: 30 + player.level * 10, damage: 8 + player.level * 2, exp: 25, color: '#44dd44', emoji: '🟢' },
+            mushroom: { width: 55, height: 50, hp: 50 + player.level * 15, damage: 12 + player.level * 3, exp: 40, color: '#dd4444', emoji: '🍄' },
+            stump: { width: 60, height: 55, hp: 80 + player.level * 20, damage: 15 + player.level * 4, exp: 60, color: '#8B4513', emoji: '🪵' },
+            fireBug: { width: 55, height: 45, hp: 100 + player.level * 25, damage: 18 + player.level * 5, exp: 80, color: '#ff6600', emoji: '🔥🐛', fireDamage: true },
+            rockWhale: { width: 70, height: 60, hp: 200 + player.level * 40, damage: 25 + player.level * 6, exp: 150, color: '#888888', emoji: '🐳🪨', heavy: true },
+            ancientDragon: { width: 90, height: 80, hp: 500 + player.level * 60, damage: 40 + player.level * 8, exp: 300, color: '#8800ff', emoji: '🐉', boss: true }
         };
 
         const mt = monsterTypes[type];
@@ -108,6 +114,12 @@ export class Monster {
             ctx.beginPath();
             ctx.arc(this.x + 30, this.y + 35 + bounce, 12, 0, Math.PI * 2);
             ctx.fill();
+        } else if (this.emoji) {
+            // 새 몬스터들은 emoji로 표시
+            ctx.font = `${this.width}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(this.emoji, this.x + this.width/2, this.y + this.height/2 + bounce);
         }
 
         // 눈
@@ -149,6 +161,7 @@ export class Monster {
 
     takeDamage(dmg, isCrit = false, isBackstab = false) {
         let finalDmg = Math.floor(dmg * (isCrit ? 1.5 : 1) * (isBackstab ? 2 : 1));
+        console.log(`[Monster] takeDamage called! HP: ${this.hp} -> ${this.hp - finalDmg}, Damage: ${finalDmg}, Crit: ${isCrit}`);
         this.hp -= finalDmg;
         this.hitFlash = 10;
 
@@ -236,7 +249,23 @@ export class Monster {
                 game.coins.push(new Coin(this.x + this.width/2, this.y + this.height/2));
             }
 
+            // 퀘스트 진행도 업데이트
+            updateQuestProgress('kill', 1, this.type); // 특정 몬스터 처치
+            updateQuestProgress('killAny', 1); // 아무 몬스터나 처치
+
+            // 로그 추가 (10마리마다)
+            if (player.kills % 10 === 0) {
+                logKill(this.type, player.kills);
+            }
+
             // Level up check is handled in game loop
+        }
+
+        // 크리티컬 퀘스트 진행도 및 업적 업데이트
+        if (isCrit) {
+            game.critCount = (game.critCount || 0) + 1;
+            updateQuestProgress('critical', 1);
+            checkAchievement('crits', game.critCount);
         }
     }
 }

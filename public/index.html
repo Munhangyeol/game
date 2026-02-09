@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>MapleQuest RPG</title>
     <link rel="stylesheet" href="./css/style.css">
 </head>
@@ -85,8 +88,15 @@
         </div>
         <div class="level-up" id="levelUpText">LEVEL UP!</div>
         <div class="stat-gain" id="statGainText"></div>
+        <div class="promotion-ui" id="promotionUI" style="display: none;"></div>
     </div>
 
-    <script type="module" src="../src/main.js"></script>
+    <script>
+        // Force cache bust
+        const script = document.createElement('script');
+        script.type = 'module';
+        script.src = `../src/main.js?v=${Date.now()}`;
+        document.body.appendChild(script);
+    </script>
 </body>
 </html>

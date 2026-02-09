@@ -19,10 +19,43 @@ export const JOBS = {
             { level: 70, hp: 400, mp: 80 }   // 최종변직 (히어로)
         ],
         basicAttack: { damage: 1.4, range: 75, type: 'sword', cooldown: 28, animDuration: 200 },
-        skills: [
-            { name: '파워 스트라이크', key: 'Z', mp: 5, cooldown: 30, damage: 2.8, type: 'powerStrike', knockback: true, icon: '💥' },
-            { name: '슬래시 블래스트', key: 'X', mp: 10, cooldown: 90, damage: 1.5, type: 'slashBlast', range: 150, icon: '🌀' },
-            { name: '레이지', key: 'C', mp: 15, cooldown: 600, duration: 600, buff: 'rage', attackBonus: 1.5, icon: '😤' }
+        tiers: [
+            {
+                name: '전사',
+                icon: '⚔️',
+                skills: [
+                    { name: '파워 스트라이크', key: 'Z', mp: 5, cooldown: 30, damage: 2.8, type: 'powerStrike', knockback: true, icon: '💥' },
+                    { name: '슬래시 블래스트', key: 'X', mp: 10, cooldown: 90, damage: 1.5, type: 'slashBlast', range: 150, icon: '🌀' },
+                    { name: '레이지', key: 'C', mp: 15, cooldown: 600, duration: 600, buff: 'rage', attackBonus: 1.5, icon: '😤' }
+                ]
+            },
+            {
+                name: '기사',
+                icon: '🛡️',
+                skills: [
+                    { name: '강타+', key: 'Z', mp: 7, cooldown: 35, damage: 3.5, type: 'powerStrikePlus', knockback: true, icon: '💢' },
+                    { name: '실드 타격', key: 'X', mp: 12, cooldown: 100, damage: 2.0, type: 'shieldCounter', duration: 300, icon: '🛡️' },
+                    { name: '성스러운 빛', key: 'C', mp: 18, cooldown: 600, duration: 600, buff: 'holyLight', healPerSec: 5, attackBonus: 1.2, icon: '✨' }
+                ]
+            },
+            {
+                name: '다크나이트',
+                icon: '⚔️🌑',
+                skills: [
+                    { name: '다크 스트라이크', key: 'Z', mp: 10, cooldown: 40, damage: 4.5, type: 'darkStrike', pierce: true, icon: '⚫💥' },
+                    { name: '혈의 날', key: 'X', mp: 18, cooldown: 110, damage: 2.0, type: 'bloodBlade', range: 200, enemies: 5, icon: '🩸🗡️' },
+                    { name: '분노의 기사', key: 'C', mp: 25, cooldown: 620, duration: 700, buff: 'berserker', attackBonus: 1.8, icon: '😡⚔️' }
+                ]
+            },
+            {
+                name: '히어로',
+                icon: '✨⚔️',
+                skills: [
+                    { name: '영웅의 강타', key: 'Z', mp: 15, cooldown: 45, damage: 6.0, type: 'heroStrike', knockback: true, shockwave: true, icon: '✨💥' },
+                    { name: '거인의 난타', key: 'X', mp: 30, cooldown: 120, damage: 2.5, type: 'giantRampage', range: 250, enemies: 8, icon: '👊💢' },
+                    { name: '영웅의 의지', key: 'C', mp: 35, cooldown: 650, duration: 800, buff: 'heroicWill', attackBonus: 2.0, defense: 0.5, icon: '⭐😤' }
+                ]
+            }
         ]
     },
     thief: {
@@ -44,10 +77,43 @@ export const JOBS = {
             { level: 70, hp: 300, mp: 120 }  // 최종변직 (나이트로드)
         ],
         basicAttack: { damage: 0.4, range: 50, type: 'dagger', hits: 2, cooldown: 10, animDuration: 60 },
-        skills: [
-            { name: '삼중 스탭', key: 'Z', mp: 5, cooldown: 35, damage: 1.4, hits: 3, type: 'doubleStab', icon: '⚡' },
-            { name: '어쌔시네이트', key: 'X', mp: 12, cooldown: 120, damage: 4.5, type: 'assassinate', backstab: true, icon: '💀' },
-            { name: '헤이스트', key: 'C', mp: 10, cooldown: 480, duration: 600, buff: 'haste', speedBonus: 1.5, icon: '💨' }
+        tiers: [
+            {
+                name: '도적',
+                icon: '🗡️',
+                skills: [
+                    { name: '삼중 스탭', key: 'Z', mp: 5, cooldown: 35, damage: 1.4, hits: 3, type: 'doubleStab', icon: '⚡' },
+                    { name: '어쌔시네이트', key: 'X', mp: 12, cooldown: 120, damage: 4.5, type: 'assassinate', backstab: true, icon: '💀' },
+                    { name: '헤이스트', key: 'C', mp: 10, cooldown: 480, duration: 600, buff: 'haste', speedBonus: 1.5, icon: '💨' }
+                ]
+            },
+            {
+                name: '로그',
+                icon: '🗡️✨',
+                skills: [
+                    { name: '사중 스탭', key: 'Z', mp: 7, cooldown: 40, damage: 1.5, hits: 4, type: 'quadStab', icon: '⚡⚡' },
+                    { name: '스텔스 백스탭', key: 'X', mp: 15, cooldown: 130, damage: 5.5, type: 'stealthBackstab', backstab: true, icon: '👤' },
+                    { name: '신속', key: 'C', mp: 12, cooldown: 500, duration: 600, buff: 'swiftness', speedBonus: 1.8, evasion: 15, icon: '💨✨' }
+                ]
+            },
+            {
+                name: '어쌔신',
+                icon: '💀',
+                skills: [
+                    { name: '독의 스탭', key: 'Z', mp: 10, cooldown: 45, damage: 1.8, hits: 4, type: 'poisonStab', poison: true, icon: '☠️🗡️' },
+                    { name: '치명의 일격', key: 'X', mp: 20, cooldown: 140, damage: 7.0, type: 'deadlyBlow', critBoost: 30, backstabBoost: 3, icon: '💀💥' },
+                    { name: '그림자 이동', key: 'C', mp: 15, cooldown: 520, duration: 600, buff: 'shadowShift', evasion: 50, speedBonus: 1.5, icon: '👤💨' }
+                ]
+            },
+            {
+                name: '나이트로드',
+                icon: '🌟💀',
+                skills: [
+                    { name: '백개 단검', key: 'Z', mp: 18, cooldown: 50, damage: 0.8, hits: 10, type: 'hundredDaggers', icon: '🗡️🗡️🗡️' },
+                    { name: '영혼의 일격', key: 'X', mp: 30, cooldown: 150, damage: 10.0, type: 'soulStrike', guaranteedCrit: true, icon: '👻💥' },
+                    { name: '어둠의 분신', key: 'C', mp: 40, cooldown: 550, duration: 600, buff: 'darkClone', cloneDamage: 0.5, icon: '👥💀' }
+                ]
+            }
         ]
     },
     archer: {
@@ -69,10 +135,43 @@ export const JOBS = {
             { level: 70, hp: 250, mp: 100 }  // 최종변직 (보우마스터)
         ],
         basicAttack: { damage: 1.0, type: 'arrow', cooldown: 18, animDuration: 100 },
-        skills: [
-            { name: '더블 샷', key: 'Z', mp: 3, cooldown: 20, damage: 1.8, arrows: 2, type: 'doubleShot', spread: true, icon: '➹' },
-            { name: '애로우 레인', key: 'X', mp: 15, cooldown: 150, damage: 1.0, type: 'arrowRain', icon: '🌧️' },
-            { name: '소울 애로우', key: 'C', mp: 8, cooldown: 420, duration: 600, buff: 'soul', piercing: true, icon: '✨' }
+        tiers: [
+            {
+                name: '궁수',
+                icon: '🏹',
+                skills: [
+                    { name: '더블 샷', key: 'Z', mp: 3, cooldown: 20, damage: 1.8, arrows: 2, type: 'doubleShot', spread: true, icon: '➹' },
+                    { name: '애로우 레인', key: 'X', mp: 15, cooldown: 150, damage: 1.0, type: 'arrowRain', icon: '🌧️' },
+                    { name: '소울 애로우', key: 'C', mp: 8, cooldown: 420, duration: 600, buff: 'soul', piercing: true, icon: '✨' }
+                ]
+            },
+            {
+                name: '헌터',
+                icon: '🏹🎯',
+                skills: [
+                    { name: '트리플 샷', key: 'Z', mp: 5, cooldown: 25, damage: 1.9, arrows: 3, type: 'tripleShot', spread: true, icon: '➹➹➹' },
+                    { name: '폭발 화살', key: 'X', mp: 18, cooldown: 160, damage: 2.5, type: 'explosiveArrow', radius: 80, icon: '💥🏹' },
+                    { name: '예리한 시선', key: 'C', mp: 10, cooldown: 440, duration: 600, buff: 'keenEyes', critBonus: 15, icon: '👁️✨' }
+                ]
+            },
+            {
+                name: '레인저',
+                icon: '🏹🌟',
+                skills: [
+                    { name: '바람의 샷', key: 'Z', mp: 8, cooldown: 15, damage: 2.2, arrows: 5, type: 'windShot', rapid: true, icon: '💨🏹' },
+                    { name: '강화 레인', key: 'X', mp: 25, cooldown: 170, damage: 1.5, type: 'enhancedRain', count: 30, icon: '🌧️✨' },
+                    { name: '자연의 축복', key: 'C', mp: 20, cooldown: 460, duration: 600, buff: 'natureBless', healPerSec: 3, piercing: true, critBonus: 10, icon: '🍃✨' }
+                ]
+            },
+            {
+                name: '보우마스터',
+                icon: '🏹👑',
+                skills: [
+                    { name: '무한의 샷', key: 'Z', mp: 12, cooldown: 20, damage: 2.5, arrows: 8, type: 'infiniteShot', pierce: true, rapid: true, icon: '♾️🏹' },
+                    { name: '종일 화살비', key: 'X', mp: 40, cooldown: 180, damage: 2.0, type: 'allDayRain', count: 50, duration: 180, icon: '⛈️🏹' },
+                    { name: '궁수의 영혼', key: 'C', mp: 50, cooldown: 500, duration: 700, buff: 'archerSoul', attackBonus: 2.2, piercing: true, critBonus: 20, icon: '👑✨' }
+                ]
+            }
         ]
     }
 };

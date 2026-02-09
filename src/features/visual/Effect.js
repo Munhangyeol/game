@@ -64,6 +64,36 @@ export class Effect {
             case 'levelUpPillar':
                 this.drawLevelUpPillar(progress);
                 break;
+            case 'promotionPillar':
+                this.drawPromotionPillar(progress);
+                break;
+            case 'powerStrikePlus':
+                this.drawPowerStrikePlus(progress);
+                break;
+            case 'shieldCounter':
+                this.drawShieldCounter(progress);
+                break;
+            case 'holyLightActivate':
+                this.drawHolyLightActivate(progress);
+                break;
+            case 'quadStab':
+                this.drawQuadStab(progress);
+                break;
+            case 'stealthActivate':
+                this.drawStealthActivate(progress);
+                break;
+            case 'stealthBackstab':
+                this.drawStealthBackstab(progress);
+                break;
+            case 'tripleShot':
+                this.drawTripleShot(progress);
+                break;
+            case 'explosiveArrowCharge':
+                this.drawExplosiveArrowCharge(progress);
+                break;
+            case 'explosiveArrowBlast':
+                this.drawExplosiveArrowBlast(progress);
+                break;
         }
 
         ctx.restore();
@@ -530,6 +560,353 @@ export class Effect {
             ctx.beginPath();
             ctx.arc(this.x + xOffset, yPos, size, 0, Math.PI * 2);
             ctx.fill();
+        }
+    }
+
+    drawPromotionPillar(progress) {
+        const alpha = 1 - progress;
+        ctx.globalAlpha = alpha * 0.9;
+
+        // Golden pillar (wider and taller)
+        const gradient = ctx.createLinearGradient(this.x, this.y + 60, this.x, this.y - 300);
+        gradient.addColorStop(0, 'rgba(255, 215, 0, 0.9)');
+        gradient.addColorStop(0.4, 'rgba(255, 255, 255, 0.8)');
+        gradient.addColorStop(0.7, 'rgba(255, 215, 0, 0.6)');
+        gradient.addColorStop(1, 'rgba(255, 215, 0, 0)');
+
+        ctx.fillStyle = gradient;
+        ctx.fillRect(this.x - 50, this.y - 300, 100, 360);
+
+        // Rotating stars
+        for (let i = 0; i < 20; i++) {
+            const angle = (i / 20) * Math.PI * 2 + progress * 4;
+            const radius = 40 + (i % 3) * 15;
+            const yPos = this.y - progress * 300 + (i / 20) * 100;
+            const xPos = this.x + Math.cos(angle) * radius;
+
+            ctx.fillStyle = i % 2 === 0 ? '#ffd700' : '#ffffff';
+            this.drawStar(xPos, yPos, 5, 6 + (i % 2) * 2, 3);
+        }
+    }
+
+    drawPowerStrikePlus(progress) {
+        const alpha = 1 - progress;
+        ctx.globalAlpha = alpha;
+
+        // Larger shock wave
+        const radius = 40 + progress * 100;
+        ctx.strokeStyle = '#ff3333';
+        ctx.lineWidth = 10 - progress * 8;
+        ctx.beginPath();
+        ctx.arc(this.x + this.direction * 50, this.y, radius, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Inner explosion
+        ctx.fillStyle = `rgba(255, 100, 0, ${alpha * 0.6})`;
+        ctx.beginPath();
+        ctx.arc(this.x + this.direction * 50, this.y, radius * 0.7, 0, Math.PI * 2);
+        ctx.fill();
+
+        // More sparks
+        for (let i = 0; i < 12; i++) {
+            const angle = (i / 12) * Math.PI * 2 + progress * 3;
+            const dist = radius * 0.9;
+            ctx.fillStyle = i % 2 === 0 ? '#ffff00' : '#ff6600';
+            ctx.beginPath();
+            ctx.arc(
+                this.x + this.direction * 50 + Math.cos(angle) * dist,
+                this.y + Math.sin(angle) * dist,
+                5 - progress * 4, 0, Math.PI * 2
+            );
+            ctx.fill();
+        }
+    }
+
+    drawShieldCounter(progress) {
+        const alpha = 1 - progress;
+        ctx.globalAlpha = alpha;
+
+        // Shield bash
+        const size = 30 + progress * 40;
+        ctx.fillStyle = '#4488ff';
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 3;
+
+        // Shield shape
+        ctx.beginPath();
+        const cx = this.x + this.direction * 40;
+        ctx.moveTo(cx, this.y - size);
+        ctx.lineTo(cx + this.direction * size, this.y);
+        ctx.lineTo(cx, this.y + size);
+        ctx.lineTo(cx - this.direction * size * 0.3, this.y);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Impact lines
+        for (let i = 0; i < 5; i++) {
+            const offset = (i - 2) * 15;
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(cx + this.direction * size, this.y + offset);
+            ctx.lineTo(cx + this.direction * (size + progress * 30), this.y + offset);
+            ctx.stroke();
+        }
+    }
+
+    drawHolyLightActivate(progress) {
+        const alpha = 1 - progress;
+        ctx.globalAlpha = alpha;
+
+        // Golden holy aura
+        const radius = 15 + progress * 70;
+
+        // Multiple rings
+        for (let i = 0; i < 3; i++) {
+            const delay = i * 0.15;
+            const p = Math.max(0, (progress - delay) / (1 - delay));
+            if (p > 0) {
+                const r = 15 + p * 70;
+                ctx.strokeStyle = `rgba(255, 215, 0, ${alpha * (1 - p * 0.5)})`;
+                ctx.lineWidth = 5 - p * 4;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, r, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+        }
+
+        // Cross pattern
+        ctx.strokeStyle = `rgba(255, 255, 200, ${alpha})`;
+        ctx.lineWidth = 3;
+        const crossSize = progress * 50;
+        ctx.beginPath();
+        ctx.moveTo(this.x, this.y - crossSize);
+        ctx.lineTo(this.x, this.y + crossSize);
+        ctx.moveTo(this.x - crossSize, this.y);
+        ctx.lineTo(this.x + crossSize, this.y);
+        ctx.stroke();
+
+        // Sparkles
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2 + progress * 4;
+            const dist = 20 + progress * 50;
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(
+                this.x + Math.cos(angle) * dist,
+                this.y + Math.sin(angle) * dist,
+                3, 0, Math.PI * 2
+            );
+            ctx.fill();
+        }
+    }
+
+    drawQuadStab(progress) {
+        const alpha = 1 - progress;
+        ctx.globalAlpha = alpha;
+        const numHits = this.data.hits || 4;
+        const colors = ['#aa44ff', '#cc66ff', '#ee88ff', '#ff99ff'];
+        const gap = 0.75 / numHits;
+
+        for (let i = 0; i < numHits; i++) {
+            const offset = i * gap;
+            const p = Math.max(0, Math.min(1, (progress - offset) / (1 - offset) * 1.8));
+
+            if (p > 0) {
+                const length = 70 * (1 - Math.abs(p - 0.5) * 2);
+                const yOff = (i - numHits * 0.35) * 8;
+                ctx.fillStyle = colors[i] || '#ff99ff';
+                ctx.beginPath();
+                ctx.moveTo(this.x + this.direction * 20, this.y - 6 + yOff);
+                ctx.lineTo(this.x + this.direction * (20 + length), this.y + yOff);
+                ctx.lineTo(this.x + this.direction * 20, this.y + 6 + yOff);
+                ctx.fill();
+
+                if (p > 0.4 && p < 0.6) {
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.arc(this.x + this.direction * 80, this.y + yOff, 12, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
+    }
+
+    drawStealthActivate(progress) {
+        const alpha = 1 - progress;
+        ctx.globalAlpha = alpha * 0.8;
+
+        // Shadow smoke
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            const dist = progress * 60;
+            const size = 15 - progress * 10;
+            ctx.fillStyle = `rgba(50, 0, 80, ${alpha})`;
+            ctx.beginPath();
+            ctx.arc(
+                this.x + Math.cos(angle) * dist,
+                this.y + Math.sin(angle) * dist,
+                size, 0, Math.PI * 2
+            );
+            ctx.fill();
+        }
+
+        // Purple aura
+        ctx.strokeStyle = `rgba(170, 68, 255, ${alpha})`;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, 25 + progress * 35, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+
+    drawStealthBackstab(progress) {
+        const alpha = 1 - progress;
+        ctx.globalAlpha = alpha;
+
+        // Shadow trail
+        for (let i = 0; i < 5; i++) {
+            const offsetX = this.direction * (i * 25 - progress * 80);
+            ctx.fillStyle = `rgba(50, 0, 80, ${alpha * 0.6})`;
+            ctx.beginPath();
+            ctx.ellipse(this.x + offsetX, this.y, 30 - i * 4, 40 - i * 6, 0, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Critical strike
+        const strikeProgress = Math.max(0, progress - 0.2) / 0.8;
+        if (strikeProgress > 0) {
+            ctx.strokeStyle = '#aa44ff';
+            ctx.lineWidth = 6 - strikeProgress * 5;
+            ctx.lineCap = 'round';
+
+            const size = 50 + strikeProgress * 40;
+            const cx = this.x + this.direction * 70;
+
+            // X slash
+            ctx.beginPath();
+            ctx.moveTo(cx - size, this.y - size);
+            ctx.lineTo(cx + size, this.y + size);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(cx + size, this.y - size);
+            ctx.lineTo(cx - size, this.y + size);
+            ctx.stroke();
+
+            // Shadow skull
+            if (strikeProgress > 0.5) {
+                ctx.font = `${35 + strikeProgress * 25}px Arial`;
+                ctx.fillStyle = `rgba(170, 68, 255, ${1 - strikeProgress})`;
+                ctx.textAlign = 'center';
+                ctx.fillText('💀', cx, this.y + 15);
+            }
+        }
+    }
+
+    drawTripleShot(progress) {
+        const alpha = 1 - progress;
+        ctx.globalAlpha = alpha;
+
+        // Three arrow trails
+        for (let i = 0; i < 3; i++) {
+            const offsetY = (i - 1) * 22;
+            const trailLength = 90 * (1 - progress);
+
+            // Arrow light trail
+            const gradient = ctx.createLinearGradient(
+                this.x, this.y + offsetY,
+                this.x + this.direction * trailLength, this.y + offsetY
+            );
+            gradient.addColorStop(0, 'rgba(68, 255, 102, 0)');
+            gradient.addColorStop(1, `rgba(68, 255, 102, ${alpha})`);
+
+            ctx.strokeStyle = gradient;
+            ctx.lineWidth = 5;
+            ctx.beginPath();
+            ctx.moveTo(this.x, this.y + offsetY);
+            ctx.lineTo(this.x + this.direction * trailLength, this.y + offsetY);
+            ctx.stroke();
+
+            // Arrow head
+            ctx.fillStyle = '#66ff66';
+            ctx.beginPath();
+            ctx.moveTo(this.x + this.direction * trailLength, this.y + offsetY);
+            ctx.lineTo(this.x + this.direction * (trailLength - 18), this.y + offsetY - 6);
+            ctx.lineTo(this.x + this.direction * (trailLength - 18), this.y + offsetY + 6);
+            ctx.fill();
+        }
+    }
+
+    drawExplosiveArrowCharge(progress) {
+        const alpha = 1 - progress;
+        ctx.globalAlpha = alpha;
+
+        // Charging energy
+        const radius = 10 + progress * 20;
+        ctx.fillStyle = `rgba(255, 100, 0, ${alpha * 0.7})`;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Sparks
+        for (let i = 0; i < 6; i++) {
+            const angle = (i / 6) * Math.PI * 2 + progress * 5;
+            const dist = radius + 10;
+            ctx.fillStyle = '#ffaa00';
+            ctx.beginPath();
+            ctx.arc(
+                this.x + Math.cos(angle) * dist,
+                this.y + Math.sin(angle) * dist,
+                3, 0, Math.PI * 2
+            );
+            ctx.fill();
+        }
+    }
+
+    drawExplosiveArrowBlast(progress) {
+        const alpha = 1 - progress;
+        ctx.globalAlpha = alpha;
+
+        // Main explosion
+        const radius = 20 + progress * 80;
+        const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, radius);
+        gradient.addColorStop(0, `rgba(255, 200, 0, ${alpha * 0.9})`);
+        gradient.addColorStop(0.5, `rgba(255, 100, 0, ${alpha * 0.6})`);
+        gradient.addColorStop(1, `rgba(255, 0, 0, ${alpha * 0.2})`);
+
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Shockwave rings
+        for (let i = 0; i < 3; i++) {
+            const delay = i * 0.2;
+            const p = Math.max(0, (progress - delay) / (1 - delay));
+            if (p > 0) {
+                const r = 30 + p * 70;
+                ctx.strokeStyle = `rgba(255, 150, 0, ${alpha * (1 - p)})`;
+                ctx.lineWidth = 5 - p * 4;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, r, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+        }
+
+        // Fire burst lines
+        for (let i = 0; i < 12; i++) {
+            const angle = (i / 12) * Math.PI * 2;
+            const len = 30 + progress * 60;
+            ctx.strokeStyle = i % 2 === 0 ? `rgba(255, 100, 0, ${alpha})` : `rgba(255, 200, 0, ${alpha})`;
+            ctx.lineWidth = 4 - progress * 3;
+            ctx.beginPath();
+            ctx.moveTo(this.x, this.y);
+            ctx.lineTo(
+                this.x + Math.cos(angle) * len,
+                this.y + Math.sin(angle) * len
+            );
+            ctx.stroke();
         }
     }
 }

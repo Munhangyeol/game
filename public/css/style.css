@@ -267,3 +267,722 @@ canvas {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.3; }
 }
+
+.promotion-ui {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(135deg, rgba(20,20,40,0.95), rgba(40,40,80,0.95));
+    border: 4px solid gold;
+    border-radius: 20px;
+    padding: 40px 60px;
+    box-shadow: 0 0 50px rgba(255,215,0,0.8);
+    pointer-events: none;
+    z-index: 1000;
+    text-align: center;
+    min-width: 400px;
+    color: white;
+}
+
+.promotion-ui h1 {
+    font-size: 48px;
+    margin-bottom: 20px;
+    color: gold;
+    text-shadow: 0 0 20px gold;
+}
+
+.promotion-ui .promotion-icon {
+    font-size: 80px;
+    margin: 20px 0;
+}
+
+.promotion-ui .promotion-stats {
+    font-size: 20px;
+    margin: 15px 0;
+    color: #44ff44;
+}
+
+.promotion-ui .promotion-skills {
+    margin-top: 20px;
+    font-size: 16px;
+    color: #ffcc88;
+}
+
+@keyframes promotionAppear {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+    50% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+    100% { opacity: 0; transform: translate(-50%, -60%) scale(1); }
+}
+
+/* 스킬 툴팁 */
+.skill-tooltip {
+    position: fixed;
+    background: linear-gradient(135deg, rgba(20,20,40,0.98), rgba(40,40,80,0.98));
+    border: 2px solid #6666ff;
+    border-radius: 12px;
+    padding: 12px 16px;
+    min-width: 220px;
+    max-width: 300px;
+    color: white;
+    font-size: 13px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.8), 0 0 15px rgba(100,100,255,0.4);
+    z-index: 10000;
+    pointer-events: none;
+    animation: tooltipFadeIn 0.15s ease-out;
+}
+
+@keyframes tooltipFadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.tooltip-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.tooltip-icon {
+    font-size: 24px;
+}
+
+.tooltip-name {
+    font-size: 16px;
+    font-weight: bold;
+    flex: 1;
+}
+
+.tooltip-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #6666ff, transparent);
+    margin: 8px 0;
+}
+
+.tooltip-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.tooltip-stat {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #cccccc;
+}
+
+.stat-value {
+    color: #ffff88;
+    font-weight: bold;
+}
+
+.tooltip-description {
+    margin-top: 8px;
+}
+
+.tooltip-effect {
+    font-size: 11px;
+    color: #aaddff;
+    margin: 3px 0;
+    padding-left: 4px;
+    line-height: 1.4;
+}
+
+/* 스탯 화면 */
+.stat-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.stat-screen-content {
+    background: linear-gradient(135deg, rgba(20,20,40,0.98), rgba(40,40,80,0.98));
+    border: 3px solid #6666ff;
+    border-radius: 16px;
+    padding: 30px 40px;
+    min-width: 350px;
+    max-width: 450px;
+    color: white;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.9), 0 0 20px rgba(100,100,255,0.5);
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from { transform: translateY(-30px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.stat-screen-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    justify-content: center;
+}
+
+.stat-screen-icon {
+    font-size: 48px;
+}
+
+.stat-screen-title {
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.stat-screen-divider {
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #6666ff, transparent);
+    margin: 16px 0;
+}
+
+.stat-screen-section {
+    margin: 16px 0;
+}
+
+.stat-screen-section-title {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 12px;
+    color: #aaddff;
+    text-align: center;
+}
+
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 12px;
+    margin: 4px 0;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    font-size: 15px;
+}
+
+.stat-label {
+    color: #cccccc;
+}
+
+.stat-value {
+    color: #ffff88;
+    font-weight: bold;
+}
+
+.stat-screen-footer {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.stat-screen-hint {
+    font-size: 12px;
+    color: #888888;
+    font-style: italic;
+}
+
+/* 게임오버 화면 */
+.game-over-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    animation: fadeIn 0.5s ease-out;
+}
+
+.game-over-content {
+    background: linear-gradient(135deg, rgba(20,20,40,0.98), rgba(40,40,80,0.98));
+    border: 4px solid #ff4444;
+    border-radius: 20px;
+    padding: 40px 50px;
+    min-width: 400px;
+    color: white;
+    text-align: center;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.9), 0 0 30px rgba(255,68,68,0.6);
+    animation: gameOverAppear 0.5s ease-out;
+}
+
+@keyframes gameOverAppear {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+.game-over-skull {
+    font-size: 80px;
+    margin-bottom: 10px;
+    animation: skullFloat 2s ease-in-out infinite;
+}
+
+@keyframes skullFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+.game-over-title {
+    font-size: 48px;
+    font-weight: bold;
+    color: #ff4444;
+    text-shadow: 0 0 20px #ff4444;
+    margin-bottom: 20px;
+    letter-spacing: 4px;
+}
+
+.game-over-divider {
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #ff4444, transparent);
+    margin: 20px 0;
+}
+
+.game-over-stats {
+    margin: 20px 0;
+}
+
+.game-over-job {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 15px;
+    color: #ffcc88;
+}
+
+.game-over-stat-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 20px;
+    margin: 5px 0;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    font-size: 16px;
+}
+
+.stat-highlight {
+    color: #ffff88;
+    font-weight: bold;
+}
+
+.game-over-buttons {
+    display: flex;
+    gap: 15px;
+    margin-top: 30px;
+    justify-content: center;
+}
+
+.game-over-btn {
+    padding: 12px 24px;
+    font-size: 16px;
+    font-weight: bold;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+.restart-btn {
+    background: linear-gradient(135deg, #44ff44, #22cc22);
+    color: #003300;
+}
+
+.restart-btn:hover {
+    background: linear-gradient(135deg, #55ff55, #33dd33);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(68,255,68,0.4);
+}
+
+.change-job-btn {
+    background: linear-gradient(135deg, #4488ff, #2266cc);
+    color: white;
+}
+
+.change-job-btn:hover {
+    background: linear-gradient(135deg, #5599ff, #3377dd);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(68,136,255,0.4);
+}
+
+/* 일시정지 화면 */
+.pause-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9998;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.pause-content {
+    background: linear-gradient(135deg, rgba(20,20,40,0.98), rgba(40,40,80,0.98));
+    border: 3px solid #8888ff;
+    border-radius: 20px;
+    padding: 40px 60px;
+    min-width: 350px;
+    color: white;
+    text-align: center;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.9), 0 0 20px rgba(136,136,255,0.4);
+    animation: pauseAppear 0.3s ease-out;
+}
+
+@keyframes pauseAppear {
+    from { transform: scale(0.9); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+.pause-icon {
+    font-size: 64px;
+    margin-bottom: 10px;
+}
+
+.pause-title {
+    font-size: 36px;
+    font-weight: bold;
+    color: #8888ff;
+    margin-bottom: 20px;
+}
+
+.pause-divider {
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #8888ff, transparent);
+    margin: 20px 0;
+}
+
+.pause-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 30px 0;
+}
+
+.pause-btn {
+    padding: 14px 28px;
+    font-size: 16px;
+    font-weight: bold;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+.resume-btn {
+    background: linear-gradient(135deg, #44ff88, #22cc66);
+    color: #003300;
+}
+
+.resume-btn:hover {
+    background: linear-gradient(135deg, #55ff99, #33dd77);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(68,255,136,0.4);
+}
+
+.main-btn {
+    background: linear-gradient(135deg, #ff8844, #cc6622);
+    color: white;
+}
+
+.main-btn:hover {
+    background: linear-gradient(135deg, #ff9955, #dd7733);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(255,136,68,0.4);
+}
+
+.pause-hint {
+    font-size: 12px;
+    color: #888888;
+    font-style: italic;
+    margin-top: 20px;
+}
+
+/* 퀘스트 트래커 */
+.quest-tracker {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: linear-gradient(135deg, rgba(20,20,40,0.95), rgba(40,40,80,0.95));
+    border: 2px solid #ffcc88;
+    border-radius: 12px;
+    padding: 15px 20px;
+    min-width: 250px;
+    max-width: 300px;
+    color: white;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.8), 0 0 10px rgba(255,204,136,0.3);
+    z-index: 100;
+}
+
+.quest-tracker-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.quest-icon {
+    font-size: 24px;
+}
+
+.quest-title {
+    font-size: 16px;
+    font-weight: bold;
+    color: #ffcc88;
+}
+
+.quest-description {
+    font-size: 12px;
+    color: #cccccc;
+    margin-bottom: 10px;
+}
+
+.quest-progress {
+    margin: 10px 0;
+}
+
+.quest-progress-text {
+    font-size: 13px;
+    color: #ffff88;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.quest-progress-bar-container {
+    width: 100%;
+    height: 12px;
+    background: #333;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid #555;
+}
+
+.quest-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #44ff44, #88ff88);
+    transition: width 0.3s ease;
+    box-shadow: 0 0 10px rgba(68,255,68,0.5);
+}
+
+.quest-rewards {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+    font-size: 11px;
+    color: #aaddff;
+    flex-wrap: wrap;
+}
+
+/* 채팅 로그 */
+.chat-log {
+    position: absolute;
+    bottom: 70px;
+    left: 10px;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    padding: 10px 12px;
+    min-width: 300px;
+    max-width: 450px;
+    color: white;
+    font-size: 12px;
+    z-index: 50;
+    backdrop-filter: blur(3px);
+}
+
+.chat-log-entry {
+    margin: 4px 0;
+    line-height: 1.4;
+    transition: opacity 1s ease-out;
+}
+
+.chat-log-time {
+    color: #888888;
+    font-size: 10px;
+    margin-right: 5px;
+}
+
+.chat-log-icon {
+    margin-right: 5px;
+}
+
+.chat-log-message {
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+}
+
+/* 상점 화면 */
+.shop-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.shop-content {
+    background: linear-gradient(135deg, rgba(20,20,40,0.98), rgba(40,40,80,0.98));
+    border: 3px solid #ffcc44;
+    border-radius: 16px;
+    padding: 30px 40px;
+    min-width: 450px;
+    max-width: 550px;
+    color: white;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.9), 0 0 20px rgba(255,204,68,0.4);
+    animation: slideDown 0.3s ease-out;
+}
+
+.shop-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    justify-content: center;
+}
+
+.shop-icon {
+    font-size: 48px;
+}
+
+.shop-title {
+    font-size: 32px;
+    font-weight: bold;
+    color: #ffcc44;
+}
+
+.shop-meso {
+    text-align: center;
+    font-size: 18px;
+    color: #ffff88;
+    margin-bottom: 20px;
+}
+
+.meso-amount {
+    font-weight: bold;
+    color: #ffcc44;
+}
+
+.shop-divider {
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #ffcc44, transparent);
+    margin: 16px 0;
+}
+
+.shop-items {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 20px 0;
+    max-height: 350px;
+    overflow-y: auto;
+}
+
+.shop-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.shop-item:not(.disabled):hover {
+    background: rgba(255, 204, 68, 0.1);
+    border-color: #ffcc44;
+    transform: translateX(5px);
+}
+
+.shop-item.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.shop-item-icon {
+    font-size: 36px;
+}
+
+.shop-item-info {
+    flex: 1;
+}
+
+.shop-item-name {
+    font-size: 16px;
+    font-weight: bold;
+    color: #ffffff;
+    margin-bottom: 4px;
+}
+
+.shop-item-desc {
+    font-size: 12px;
+    color: #cccccc;
+}
+
+.shop-item-price {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+}
+
+.price-amount {
+    font-size: 14px;
+    color: #ffcc44;
+    font-weight: bold;
+}
+
+.shop-buy-btn {
+    padding: 6px 16px;
+    font-size: 14px;
+    font-weight: bold;
+    background: linear-gradient(135deg, #44ff88, #22cc66);
+    color: #003300;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.shop-buy-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #55ff99, #33dd77);
+    transform: scale(1.05);
+}
+
+.shop-buy-btn:disabled {
+    background: #555555;
+    color: #888888;
+    cursor: not-allowed;
+}
+
+.shop-footer {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.shop-hint {
+    font-size: 12px;
+    color: #888888;
+    font-style: italic;
+}

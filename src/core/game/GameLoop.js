@@ -4,15 +4,67 @@ import { spawnMonster } from '../../features/monster/MonsterSpawner.js';
 import { checkLevelUp } from '../../features/progression/LevelingSystem.js';
 import { updateUI } from '../../ui/components/HUD.js';
 import { updateSkillBar, updateBuffBar } from '../../ui/components/SkillBar.js';
+import { updateQuestTracker } from '../../ui/components/QuestTracker.js';
+import { updateChatLog } from '../../ui/components/ChatLog.js';
+import { checkQuestCompletion } from '../../features/quest/QuestSystem.js';
+import { checkAchievement } from '../../features/achievement/AchievementSystem.js';
 import { drawBackground } from '../../infrastructure/rendering/BackgroundRenderer.js';
 import { drawPlayer } from '../../infrastructure/rendering/PlayerRenderer.js';
 import { drawMinimap } from '../../infrastructure/rendering/MinimapRenderer.js';
+import { showGameOver } from '../../ui/screens/GameOverScreen.js';
 
 export function gameLoop() {
     if (!game.started) {
         requestAnimationFrame(gameLoop);
         return;
     }
+
+    // 일시정지 상태에서는 렌더링만 수행
+    if (game.paused) {
+        // 렌더링만 실행 (업데이트는 스킵)
+        ctx.save();
+        if (game.screenShake.frames > 0) {
+            ctx.translate(game.screenShake.x, game.screenShake.y);
+        }
+        drawBackground();
+        for (const monster of game.monsters) monster.draw();
+        for (const coin of game.coins) coin.draw();
+        drawPlayer();
+        for (const proj of game.projectiles) proj.draw();
+        for (const effect of game.effects) effect.draw();
+        ctx.restore();
+
+        // 파티클, 데미지 텍스트 등도 렌더링
+        for (const p of game.particles) {
+            ctx.globalAlpha = p.life / 30;
+            ctx.fillStyle = p.color;
+            if (p.isStar) {
+                ctx.beginPath();
+                for (let i = 0; i < 8; i++) {
+                    const angle = (i * Math.PI) / 4;
+                    const radius = i % 2 === 0 ? p.size : p.size/2;
+                    const px = p.x + Math.cos(angle - Math.PI / 2) * radius;
+                    const py = p.y + Math.sin(angle - Math.PI / 2) * radius;
+                    if (i === 0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                }
+                ctx.closePath();
+                ctx.fill();
+            } else {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        ctx.globalAlpha = 1;
+
+        drawMinimap();
+        requestAnimationFrame(gameLoop);
+        return;
+    }
+
+    // 플레이 시간 증가
+    game.playTime++;
 
     // 히트스톱 (크리티컬 타격 시 프레임 정지)
     if (game.hitStop > 0) {
@@ -31,6 +83,17 @@ export function gameLoop() {
     if (game.combo > 0 && Date.now() - game.lastHitTime > 1000) {
         game.combo = 0;
     }
+
+    // 콤보 퀘스트 체크
+    if (game.combo > 0) {
+        checkQuestCompletion('combo', game.combo);
+        checkAchievement('combo', game.combo);
+    }
+
+    // 업적 체크 (매 프레임)
+    checkAchievement('kills', player.kills);
+    checkAchievement('level', player.level);
+    checkAchievement('meso', game.meso || 0);
 
     // 화면 흔들림 감소
     if (game.screenShake.frames > 0) {
@@ -62,7 +125,20 @@ export function gameLoop() {
     for (const [buffName, buffData] of Object.entries(player.buffs)) {
         if (buffData.duration > 0) {
             buffData.duration--;
-            if (buffData.duration <= 0) delete player.buffs[buffName];
+
+            // Holy Light healing over time
+            if (buffName === 'holyLight' && buffData.healPerSec && buffData.duration % 60 === 0) {
+                const healAmount = buffData.healPerSec;
+                player.hp = Math.min(player.hp + healAmount, player.maxHp);
+            }
+
+            if (buffData.duration <= 0) {
+                // Remove buff-specific effects on expiry
+                if (buffName === 'keenEyes' && buffData.critBonus) {
+                    player.critChance -= buffData.critBonus;
+                }
+                delete player.buffs[buffName];
+            }
         }
     }
     updateBuffBar();
@@ -77,7 +153,6 @@ export function gameLoop() {
     spawnMonster();
 
     // Track previous exp to check for level ups after monster updates
-    const prevExp = player.exp;
     const prevMonsterCount = game.monsters.length;
     game.monsters = game.monsters.filter(m => !m.update());
     const newMonsterCount = game.monsters.length;
@@ -86,12 +161,12 @@ export function gameLoop() {
         console.log(`[GameLoop] Monsters: ${prevMonsterCount} -> ${newMonsterCount}`);
     }
 
-    // Check for level up if exp changed
-    if (player.exp !== prevExp) {
-        console.log(`[GameLoop] EXP changed: ${prevExp} -> ${player.exp}, calling checkLevelUp`);
-        checkLevelUp();
-        updateUI();
-    }
+    // ALWAYS check for level up and update UI every frame
+    // (exp can change from attacks outside Monster.update())
+    checkLevelUp();
+    updateUI();
+    updateQuestTracker();
+    updateChatLog();
 
     game.projectiles = game.projectiles.filter(p => !p.update());
     game.effects = game.effects.filter(e => !e.update());
@@ -119,12 +194,9 @@ export function gameLoop() {
 
     // 사망
     if (player.hp <= 0) {
-        player.hp = player.maxHp;
-        player.mp = player.maxMp;
-        player.x = 100;
-        player.y = 400;
-        player.exp = Math.floor(player.exp / 2);
-        updateUI();
+        console.log(`[DEATH] Player died! HP: ${player.hp}, Level: ${player.level}, Kills: ${player.kills}`);
+        showGameOver();
+        // 게임오버 화면이 표시되면 game.started = false가 되어 루프가 멈춤
     }
 
     // 렌더링
@@ -182,6 +254,8 @@ export function gameLoop() {
         if (t.isBackstab) fontWeight = '900';
         if (t.isExp) fontSize = 24;
         if (t.isHeal) fontSize = 22;
+        if (t.isCritText) fontSize = 22;  // "CRITICAL!" 텍스트
+        if (t.isComboText) fontSize = 26; // "EXCELLENT!" 텍스트
 
         ctx.font = `${fontWeight} ${fontSize}px Arial`;
         ctx.textAlign = 'center';
@@ -209,6 +283,42 @@ export function gameLoop() {
         ctx.fillText(s.name, s.x, s.y);
     }
     ctx.globalAlpha = 1;
+
+    // 업적 알림
+    if (game.achievementNotifications) {
+        game.achievementNotifications = game.achievementNotifications.filter(notif => {
+            notif.life--;
+            if (notif.life <= 0) return false;
+
+            const alpha = notif.life > 30 ? 1 : notif.life / 30;
+            ctx.globalAlpha = alpha;
+
+            // 배경
+            ctx.fillStyle = 'rgba(20, 20, 40, 0.95)';
+            ctx.fillRect(canvas.width / 2 - 150, notif.y, 300, 60);
+            ctx.strokeStyle = '#ffaa00';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(canvas.width / 2 - 150, notif.y, 300, 60);
+
+            // 아이콘 + 텍스트
+            ctx.fillStyle = '#ffaa00';
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'center';
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2;
+            ctx.strokeText('🏆 업적 해금!', canvas.width / 2, notif.y + 25);
+            ctx.fillText('🏆 업적 해금!', canvas.width / 2, notif.y + 25);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 14px Arial';
+            const achievementText = `${notif.achievement.icon} ${notif.achievement.name}`;
+            ctx.strokeText(achievementText, canvas.width / 2, notif.y + 45);
+            ctx.fillText(achievementText, canvas.width / 2, notif.y + 45);
+
+            ctx.globalAlpha = 1;
+            return true;
+        });
+    }
 
     // 콤보 카운터 (우상단)
     if (game.combo > 0) {
