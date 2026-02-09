@@ -28,7 +28,9 @@
       "Bash(npm test:*)",
       "Bash(npm create vite@latest game-phaser -- --template vanilla-ts)",
       "Bash(npx http-server -p 8000 -c-1)",
-      "Bash(npx http-server:*)"
+      "Bash(npx http-server:*)",
+      "Bash(node verify-imports.js:*)",
+      "Bash(node:*)"
     ]
   }
 }

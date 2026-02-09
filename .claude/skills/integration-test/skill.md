@@ -710,15 +710,691 @@ F12 → Performance tab → Record
 
 ---
 
+## 🎯 Comprehensive Test Cases (450+ Tests)
+
+### Phase 2.5 UI Tests (100 tests)
+
+#### Skill Tooltip System (15 tests)
+```javascript
+- [ ] 1. Tooltip appears on skill hover
+- [ ] 2. Tooltip shows skill name
+- [ ] 3. Tooltip shows skill icon
+- [ ] 4. Tooltip shows damage multiplier
+- [ ] 5. Tooltip shows cooldown time
+- [ ] 6. Tooltip shows MP cost
+- [ ] 7. Tooltip shows skill description
+- [ ] 8. Tooltip shows special effects
+- [ ] 9. Tooltip position adjusts near edges
+- [ ] 10. Tooltip disappears on mouse leave
+- [ ] 11. Tooltip works for all skill slots
+- [ ] 12. Tooltip works for basic attack
+- [ ] 13. Tooltip styling matches theme
+- [ ] 14. Tooltip text is readable
+- [ ] 15. Tooltip updates when skills change (promotion)
+```
+
+#### Character Stat Screen (20 tests)
+```javascript
+- [ ] 16. I key opens stat screen
+- [ ] 17. Stat screen displays center
+- [ ] 18. Background overlay darkens game
+- [ ] 19. Job icon displays correctly
+- [ ] 20. Job name displays
+- [ ] 21. Current level displays
+- [ ] 22. HP shows current/max
+- [ ] 23. MP shows current/max
+- [ ] 24. Attack shows with buffs
+- [ ] 25. Attack shows base in parentheses
+- [ ] 26. Crit chance displays
+- [ ] 27. Speed shows with buffs
+- [ ] 28. Jump power displays
+- [ ] 29. Kill count displays
+- [ ] 30. Meso count displays
+- [ ] 31. EXP progress displays
+- [ ] 32. Play time displays (MM:SS)
+- [ ] 33. Close button works
+- [ ] 34. I key toggles screen
+- [ ] 35. Click background closes screen
+```
+
+#### Game Over Screen (15 tests)
+```javascript
+- [ ] 36. HP 0 triggers game over
+- [ ] 37. Game over screen displays
+- [ ] 38. Final level shows
+- [ ] 39. Total kills show
+- [ ] 40. Total meso shows
+- [ ] 41. Play time shows
+- [ ] 42. Restart button visible
+- [ ] 43. Job change button visible
+- [ ] 44. R key restarts game
+- [ ] 45. J key returns to job select
+- [ ] 46. Restart keeps same job
+- [ ] 47. Job change resets progress
+- [ ] 48. Game state resets properly
+- [ ] 49. Skull animation plays
+- [ ] 50. Background darkens
+```
+
+#### Pause Menu (10 tests)
+```javascript
+- [ ] 51. ESC key pauses game
+- [ ] 52. P key pauses game
+- [ ] 53. Pause overlay displays
+- [ ] 54. Game loop stops
+- [ ] 55. Rendering continues (static)
+- [ ] 56. Resume button works
+- [ ] 57. Main menu button works
+- [ ] 58. ESC toggles pause
+- [ ] 59. P toggles pause
+- [ ] 60. Confirmation on main menu
+```
+
+#### Quest Tracker (15 tests)
+```javascript
+- [ ] 61. Quest tracker displays top-right
+- [ ] 62. Active quest shows
+- [ ] 63. Quest icon displays
+- [ ] 64. Quest name displays
+- [ ] 65. Quest description shows
+- [ ] 66. Progress bar renders
+- [ ] 67. Progress text shows (X/Y)
+- [ ] 68. Progress bar fills correctly
+- [ ] 69. Rewards display
+- [ ] 70. EXP reward shown
+- [ ] 71. Meso reward shown
+- [ ] 72. Tracker updates real-time
+- [ ] 73. Completion notification
+- [ ] 74. Next quest appears
+- [ ] 75. No quest hides tracker
+```
+
+#### Chat Log (10 tests)
+```javascript
+- [ ] 76. Chat log displays bottom-left
+- [ ] 77. Last 5 messages show
+- [ ] 78. Timestamps display
+- [ ] 79. Icons display per type
+- [ ] 80. Kill messages log
+- [ ] 81. Level up messages log
+- [ ] 82. Quest messages log
+- [ ] 83. Purchase messages log
+- [ ] 84. Messages fade after 5s
+- [ ] 85. Opacity transitions smooth
+```
+
+#### Shop UI (10 tests)
+```javascript
+- [ ] 86. S key opens shop
+- [ ] 87. Shop displays centered
+- [ ] 88. Current meso shows
+- [ ] 89. 4 items display
+- [ ] 90. HP potion (50 meso)
+- [ ] 91. MP potion (30 meso)
+- [ ] 92. Super HP (150 meso)
+- [ ] 93. Super MP (100 meso)
+- [ ] 94. Buy buttons work
+- [ ] 95. Insufficient meso disables button
+```
+
+#### Achievement Notifications (5 tests)
+```javascript
+- [ ] 96. Achievement unlocks show
+- [ ] 97. Notification center-top
+- [ ] 98. Trophy icon displays
+- [ ] 99. Achievement name shows
+- [ ] 100. Notification fades out
+```
+
+---
+
+### Phase 4-5 Tests (50 tests)
+
+#### Tier 2 Warrior Skills (10 tests)
+```javascript
+- [ ] 101. Dark Strike (다크 스트라이크) works
+- [ ] 102. Dark Strike costs 10 MP
+- [ ] 103. Dark Strike damage 4.5x
+- [ ] 104. Pierce effect works
+- [ ] 105. Blood Blade (혈의 날) works
+- [ ] 106. Blood Blade costs 18 MP
+- [ ] 107. Blood Blade range 200px
+- [ ] 108. Hits 5 enemies
+- [ ] 109. Berserker buff (분노의 기사) activates
+- [ ] 110. Berserker attack x1.8
+```
+
+#### Tier 3 Warrior Skills (10 tests)
+```javascript
+- [ ] 111. Hero Strike (영웅의 강타) works
+- [ ] 112. Hero Strike costs 15 MP
+- [ ] 113. Hero Strike damage 6.0x
+- [ ] 114. Knockback + shockwave
+- [ ] 115. Giant Rampage (거인의 난타) works
+- [ ] 116. Giant Rampage range 250px
+- [ ] 117. Hits 8 enemies
+- [ ] 118. Heroic Will buff activates
+- [ ] 119. Heroic Will attack x2.0
+- [ ] 120. Defense 50% buff applies
+```
+
+#### Tier 2-3 Thief Skills (10 tests)
+```javascript
+- [ ] 121. Poison Stab (독의 스탭) works
+- [ ] 122. Poison damage over time
+- [ ] 123. Deadly Blow (치명의 일격) works
+- [ ] 124. Deadly Blow damage 7.0x
+- [ ] 125. Crit boost +30%
+- [ ] 126. Backstab boost x3
+- [ ] 127. Hundred Daggers (백개 단검) works
+- [ ] 128. 10 rapid hits
+- [ ] 129. Soul Strike (영혼의 일격) works
+- [ ] 130. Guaranteed critical hit
+```
+
+#### Tier 2-3 Archer Skills (10 tests)
+```javascript
+- [ ] 131. Wind Shot (바람의 샷) works
+- [ ] 132. 5 arrows fire rapidly
+- [ ] 133. Enhanced Rain (강화 레인) works
+- [ ] 134. 30 arrows fall
+- [ ] 135. Damage increase 1.5x
+- [ ] 136. Infinite Shot (무한의 샷) works
+- [ ] 137. 8 piercing arrows
+- [ ] 138. All Day Rain (종일 화살비) works
+- [ ] 139. 50 arrows over 3 seconds
+- [ ] 140. Archer Soul buff x2.2 attack
+```
+
+#### New Monster Types (10 tests)
+```javascript
+- [ ] 141. Fire Bug spawns at Lv15+
+- [ ] 142. Fire Bug emoji renders (🔥🐛)
+- [ ] 143. Fire Bug has high HP
+- [ ] 144. Fire Bug fire damage
+- [ ] 145. Rock Whale spawns at Lv35+
+- [ ] 146. Rock Whale emoji renders (🐳🪨)
+- [ ] 147. Rock Whale very tanky
+- [ ] 148. Ancient Dragon spawns at Lv60+
+- [ ] 149. Ancient Dragon emoji renders (🐉)
+- [ ] 150. Ancient Dragon boss-tier stats
+```
+
+---
+
+### Combat System Tests (50 tests)
+
+#### Damage Calculation (10 tests)
+```javascript
+- [ ] 151. Base damage = attack × multiplier
+- [ ] 152. Critical hit x1.5 damage
+- [ ] 153. Backstab x2.0 damage
+- [ ] 154. Rage buff increases damage
+- [ ] 155. Holy Light buff increases damage
+- [ ] 156. Berserker buff x1.8 damage
+- [ ] 157. Multiple buffs stack
+- [ ] 158. Damage numbers display
+- [ ] 159. Crit numbers larger
+- [ ] 160. Backstab purple color
+```
+
+#### Combo System (10 tests)
+```javascript
+- [ ] 161. Combo starts on first hit
+- [ ] 162. Combo increments per hit
+- [ ] 163. Combo display top-right
+- [ ] 164. 1-9 combo white
+- [ ] 165. 10-29 combo orange
+- [ ] 166. 30+ combo red
+- [ ] 167. Combo resets after 1s
+- [ ] 168. Pulse animation
+- [ ] 169. EXCELLENT at 50 combo
+- [ ] 170. Combo tracked for quests
+```
+
+#### Screen Effects (10 tests)
+```javascript
+- [ ] 171. Screen shake on crit
+- [ ] 172. Shake intensity varies
+- [ ] 173. Hit-stop on crit (3 frames)
+- [ ] 174. Crit burst effect
+- [ ] 175. Star particles
+- [ ] 176. Lightning effect
+- [ ] 177. HP bar pulse at ≤30%
+- [ ] 178. Invincibility blink
+- [ ] 179. Trail effect on Haste
+- [ ] 180. Shadow effect under player
+```
+
+#### Projectile System (10 tests)
+```javascript
+- [ ] 181. Arrows fire correctly
+- [ ] 182. Arrow gravity applies
+- [ ] 183. Arrow arc realistic
+- [ ] 184. Arrows hit monsters
+- [ ] 185. Arrows cleanup on hit
+- [ ] 186. Arrows cleanup off-screen
+- [ ] 187. Multiple arrows tracked
+- [ ] 188. Piercing arrows work
+- [ ] 189. Explosive arrows blast
+- [ ] 190. Arrow rain spawns correctly
+```
+
+#### Knockback & Control (10 tests)
+```javascript
+- [ ] 191. Power Strike knockback
+- [ ] 192. Knockback distance varies
+- [ ] 193. Knockback direction correct
+- [ ] 194. Monsters pushed back
+- [ ] 195. Hero Strike shockwave
+- [ ] 196. Giant Rampage AOE
+- [ ] 197. Slash Blast wave
+- [ ] 198. Blood Blade range
+- [ ] 199. Multiple enemies hit
+- [ ] 200. Crowd control feels good
+```
+
+---
+
+### Leveling & Progression Tests (50 tests)
+
+#### EXP System (10 tests)
+```javascript
+- [ ] 201. EXP awarded on kill
+- [ ] 202. EXP scales with level diff
+- [ ] 203. Lower level = less EXP
+- [ ] 204. Higher level = more EXP
+- [ ] 205. EXP multiplier 0.3-2.0x
+- [ ] 206. EXP bar fills
+- [ ] 207. EXP text displays
+- [ ] 208. Quest EXP adds
+- [ ] 209. EXP requirement increases x1.5
+- [ ] 210. Level 1→2 needs 100 EXP
+```
+
+#### Level Up (10 tests)
+```javascript
+- [ ] 211. Level up at EXP threshold
+- [ ] 212. "LEVEL UP! Lv.X" text
+- [ ] 213. Level number updates
+- [ ] 214. Stat gain text shows
+- [ ] 215. HP increases correctly
+- [ ] 216. MP increases correctly
+- [ ] 217. Attack increases correctly
+- [ ] 218. Crit +0.5% per level
+- [ ] 219. HP refills to max
+- [ ] 220. MP refills to max
+```
+
+#### Promotion System (15 tests)
+```javascript
+- [ ] 221. Level 10 triggers tier 1
+- [ ] 222. Level 30 triggers tier 2
+- [ ] 223. Level 70 triggers tier 3
+- [ ] 224. Promotion popup displays
+- [ ] 225. Golden pillar effect
+- [ ] 226. 100 golden particles
+- [ ] 227. New job name shows
+- [ ] 228. New job icon shows
+- [ ] 229. Stat bonus displays
+- [ ] 230. New skills list shows
+- [ ] 231. Skill bar updates
+- [ ] 232. HUD updates
+- [ ] 233. Chat log message
+- [ ] 234. Quest progress updates
+- [ ] 235. Popup auto-closes
+```
+
+#### Stat Growth (15 tests)
+```javascript
+- [ ] 236. Warrior HP +30/level
+- [ ] 237. Warrior MP +5/level
+- [ ] 238. Warrior ATK +7/level
+- [ ] 239. Thief HP +20/level
+- [ ] 240. Thief MP +8/level
+- [ ] 241. Thief ATK +5/level
+- [ ] 242. Archer HP +15/level
+- [ ] 243. Archer MP +7/level
+- [ ] 244. Archer ATK +8/level
+- [ ] 245. Tier 1 bonus applies
+- [ ] 246. Tier 2 bonus applies
+- [ ] 247. Tier 3 bonus applies
+- [ ] 248. Stats display correctly
+- [ ] 249. Stat screen accurate
+- [ ] 250. Can reach level 100+
+```
+
+---
+
+### Quest System Tests (30 tests)
+
+#### Quest Types (10 tests)
+```javascript
+- [ ] 251. Slime Hunter quest
+- [ ] 252. Kill 10 slimes
+- [ ] 253. Monster Slayer quest
+- [ ] 254. Kill 50 any monsters
+- [ ] 255. Novice Adventurer quest
+- [ ] 256. Reach level 5
+- [ ] 257. Critical Master quest
+- [ ] 258. 20 critical hits
+- [ ] 259. First Promotion quest
+- [ ] 260. Complete first promotion
+```
+
+#### Quest Flow (10 tests)
+```javascript
+- [ ] 261. First quest auto-accepts
+- [ ] 262. Progress tracks real-time
+- [ ] 263. Completion at 100%
+- [ ] 264. Rewards granted
+- [ ] 265. EXP reward adds
+- [ ] 266. Meso reward adds
+- [ ] 267. Next quest auto-accepts
+- [ ] 268. Quest order correct
+- [ ] 269. All 6 quests completable
+- [ ] 270. Quest log messages
+```
+
+#### Quest UI (10 tests)
+```javascript
+- [ ] 271. Tracker always visible
+- [ ] 272. Icon displays
+- [ ] 273. Name truncates if long
+- [ ] 274. Description clear
+- [ ] 275. Progress bar smooth
+- [ ] 276. Percentage accurate
+- [ ] 277. Rewards formatted nicely
+- [ ] 278. Completion animation
+- [ ] 279. New quest notification
+- [ ] 280. Quest complete notification
+```
+
+---
+
+### Shop System Tests (25 tests)
+
+#### Shop Access (5 tests)
+```javascript
+- [ ] 281. S key opens shop
+- [ ] 282. ESC closes shop
+- [ ] 283. S key toggles shop
+- [ ] 284. Background click closes
+- [ ] 285. Can't use during combat
+```
+
+#### Shop Items (10 tests)
+```javascript
+- [ ] 286. HP Potion 50 meso
+- [ ] 287. HP Potion heals 50% HP
+- [ ] 288. MP Potion 30 meso
+- [ ] 289. MP Potion heals 50% MP
+- [ ] 290. Super HP 150 meso
+- [ ] 291. Super HP heals 100% HP
+- [ ] 292. Super MP 100 meso
+- [ ] 293. Super MP heals 100% MP
+- [ ] 294. All items display
+- [ ] 295. Icons render correctly
+```
+
+#### Shop Purchase (10 tests)
+```javascript
+- [ ] 296. Buy button enabled if affordable
+- [ ] 297. Buy button disabled if not
+- [ ] 298. Click deducts meso
+- [ ] 299. Healing applies immediately
+- [ ] 300. Heal text displays
+- [ ] 301. Chat log shows purchase
+- [ ] 302. Shop UI updates
+- [ ] 303. Can't buy with 0 meso
+- [ ] 304. Can spam buy if rich
+- [ ] 305. HP can't exceed max
+```
+
+---
+
+### Achievement System Tests (25 tests)
+
+#### Achievement Types (10 tests)
+```javascript
+- [ ] 306. First Kill unlocks
+- [ ] 307. Slayer (100 kills)
+- [ ] 308. Massacre (500 kills)
+- [ ] 309. Level 10 achievement
+- [ ] 310. Level 30 achievement
+- [ ] 311. Crit Master (100 crits)
+- [ ] 312. Rich Man (10k meso)
+- [ ] 313. Combo God (50 combo)
+- [ ] 314. All 8 achievable
+- [ ] 315. No duplicates
+```
+
+#### Achievement Tracking (10 tests)
+```javascript
+- [ ] 316. Kills tracked
+- [ ] 317. Level checked
+- [ ] 318. Crits counted
+- [ ] 319. Meso tracked
+- [ ] 320. Combo checked
+- [ ] 321. Progress persists
+- [ ] 322. Unlocked list correct
+- [ ] 323. Check every frame
+- [ ] 324. No race conditions
+- [ ] 325. Multiple unlocks queue
+```
+
+#### Achievement UI (5 tests)
+```javascript
+- [ ] 326. Notification center-top
+- [ ] 327. Trophy icon shows
+- [ ] 328. Name displays
+- [ ] 329. Achievement icon
+- [ ] 330. Fades out after 3s
+```
+
+---
+
+### Performance Tests (40 tests)
+
+#### Frame Rate (10 tests)
+```javascript
+- [ ] 331. Maintains 60 FPS
+- [ ] 332. No drops idle
+- [ ] 333. No drops moving
+- [ ] 334. No drops attacking
+- [ ] 335. No drops with 10 monsters
+- [ ] 336. No drops with effects
+- [ ] 337. No drops with particles
+- [ ] 338. Stable over 10 minutes
+- [ ] 339. DevTools shows 60 FPS
+- [ ] 340. Frame time ~16.67ms
+```
+
+#### Memory Management (10 tests)
+```javascript
+- [ ] 341. No memory leaks
+- [ ] 342. Arrays cleaned up
+- [ ] 343. Projectiles removed
+- [ ] 344. Effects removed
+- [ ] 345. Particles removed
+- [ ] 346. Damage texts removed
+- [ ] 347. Dead monsters removed
+- [ ] 348. Coins cleanup
+- [ ] 349. Memory stable 10+ min
+- [ ] 350. No unbounded growth
+```
+
+#### CPU Usage (10 tests)
+```javascript
+- [ ] 351. CPU usage reasonable
+- [ ] 352. <50% single core
+- [ ] 353. Game loop efficient
+- [ ] 354. Render loop optimized
+- [ ] 355. No excessive redraws
+- [ ] 356. Collision detection fast
+- [ ] 357. AI updates efficient
+- [ ] 358. No blocking operations
+- [ ] 359. Event handlers efficient
+- [ ] 360. No infinite loops
+```
+
+#### Asset Loading (10 tests)
+```javascript
+- [ ] 361. All JS modules load
+- [ ] 362. CSS loads correctly
+- [ ] 363. No 404 errors
+- [ ] 364. Load time <2 seconds
+- [ ] 365. Module execution order
+- [ ] 366. No circular dependencies
+- [ ] 367. Import paths correct
+- [ ] 368. Data files load
+- [ ] 369. No CORS errors
+- [ ] 370. Cache works (if enabled)
+```
+
+---
+
+### Edge Cases & Stability (50 tests)
+
+#### Boundary Conditions (10 tests)
+```javascript
+- [ ] 371. HP can't go negative
+- [ ] 372. MP can't go negative
+- [ ] 373. HP can't exceed max
+- [ ] 374. MP can't exceed max
+- [ ] 375. EXP overflow handled
+- [ ] 376. Level 100+ works
+- [ ] 377. Meso 1M+ works
+- [ ] 378. Skill spam prevented
+- [ ] 379. Buff stack prevented
+- [ ] 380. Division by zero protected
+```
+
+#### Error Handling (10 tests)
+```javascript
+- [ ] 381. No console errors idle
+- [ ] 382. No errors on attack
+- [ ] 383. No errors on skill use
+- [ ] 384. No errors on level up
+- [ ] 385. No errors on promotion
+- [ ] 386. No errors on death
+- [ ] 387. No errors on quest
+- [ ] 388. No errors on purchase
+- [ ] 389. No errors on achievement
+- [ ] 390. Graceful degradation
+```
+
+#### Stress Tests (10 tests)
+```javascript
+- [ ] 391. 10 monsters + spam skills
+- [ ] 392. Rapid level ups
+- [ ] 393. Many projectiles
+- [ ] 394. Many particles
+- [ ] 395. Many damage texts
+- [ ] 396. All buffs active
+- [ ] 397. Open all UIs
+- [ ] 398. Rapid key presses
+- [ ] 399. Tab switch recovery
+- [ ] 400. Browser minimize recovery
+```
+
+#### Compatibility (10 tests)
+```javascript
+- [ ] 401. Works in Chrome
+- [ ] 402. Works in Firefox
+- [ ] 403. Works in Edge
+- [ ] 404. ES6 modules supported
+- [ ] 405. Canvas 2D supported
+- [ ] 406. LocalStorage (if used)
+- [ ] 407. Keyboard events work
+- [ ] 408. Mouse events work
+- [ ] 409. Window resize handled
+- [ ] 410. High DPI displays
+```
+
+#### Gameplay Polish (10 tests)
+```javascript
+- [ ] 411. Controls responsive
+- [ ] 412. Combat feels satisfying
+- [ ] 413. Visual feedback clear
+- [ ] 414. Audio cues (if added)
+- [ ] 415. UI is intuitive
+- [ ] 416. Tooltips helpful
+- [ ] 417. Progression rewarding
+- [ ] 418. Balance reasonable
+- [ ] 419. No tedious grinding
+- [ ] 420. Fun to play!
+```
+
+---
+
+### Cross-Job Balance Tests (30 tests)
+
+#### Warrior Balance (10 tests)
+```javascript
+- [ ] 421. Warrior playable 1-70
+- [ ] 422. Tanky enough
+- [ ] 423. Damage adequate
+- [ ] 424. Skills useful
+- [ ] 425. Tier progression smooth
+- [ ] 426. Not too slow
+- [ ] 427. Rage buff impactful
+- [ ] 428. Knockback useful
+- [ ] 429. Hero tier feels powerful
+- [ ] 430. Melee range manageable
+```
+
+#### Thief Balance (10 tests)
+```javascript
+- [ ] 431. Thief playable 1-70
+- [ ] 432. Speed advantage clear
+- [ ] 433. DPS competitive
+- [ ] 434. Fragile but survivable
+- [ ] 435. Skills synergize
+- [ ] 436. Haste makes faster
+- [ ] 437. Backstab rewarding
+- [ ] 438. Crit chance high
+- [ ] 439. Night Lord powerful
+- [ ] 440. Playstyle distinct
+```
+
+#### Archer Balance (10 tests)
+```javascript
+- [ ] 441. Archer playable 1-70
+- [ ] 442. Range advantage clear
+- [ ] 443. Damage consistent
+- [ ] 444. Arrow mechanics fun
+- [ ] 445. Skills varied
+- [ ] 446. Arrow Rain powerful
+- [ ] 447. Piercing useful
+- [ ] 448. Bow Master strong
+- [ ] 449. Safe playstyle
+- [ ] 450. Not boring
+```
+
+---
+
 ## Success Criteria
 
 The game passes integration testing if:
 
+✅ **450+ tests pass (≥95% success rate)**
 ✅ **All 3 jobs are fully playable**
 ✅ **No game-breaking bugs**
 ✅ **60 FPS maintained**
 ✅ **All core systems work together** (movement + combat + leveling + UI)
-✅ **Can play from Level 1 to Level 10 without issues**
+✅ **Can play from Level 1 to Level 70+ without issues**
 ✅ **Player experience is smooth and enjoyable**
+✅ **All Phase 2.5-5 features functional**
+
+## Test Execution
+
+Run tests in this order:
+1. Phase 0: Module imports (validate first)
+2. Phase 1-3: Core gameplay (movement, combat)
+3. Phase 4-5: Advanced features (skills, monsters)
+4. Phase 2.5: UI systems (all 9 systems)
+5. Performance & edge cases
+6. Cross-job balance
 
 If any critical system fails, report it immediately and suggest fixes.
