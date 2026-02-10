@@ -2,29 +2,29 @@
 
 메이플스토리 스타일의 2D 횡스크롤 RPG 브라우저 게임
 
-**언어:** Vanilla JavaScript (ES6+ Modules)
-**렌더링:** HTML5 Canvas
-**의존성:** 없음 (순수 바닐라)
-**버전:** 2.0 - 도메인 기반 아키텍처
+**언어:** Vanilla JavaScript (ES6+ Modules) + Phaser.js 3
+**렌더링:** HTML5 Canvas / WebGL (Phaser Edition)
+**의존성:** 없음 (바닐라) / Phaser 3 CDN (Phaser Edition)
+**버전:** 3.0 - Phaser.js 엔진 마이그레이션 완료
 
 ---
 
 ## 🚀 빠른 시작
 
-### 게임 실행
+### Phaser Edition (최신, 권장)
 ```bash
 # Windows
-cd game
+start "" "phaser.html"
+
+# macOS / Linux
+open phaser.html
+```
+
+### Vanilla Edition (레거시)
+```bash
+# Python HTTP 서버 실행 (ES Modules 필요)
 python -m http.server 8000
-start "" "http://localhost:8000/public"
-
-# 또는 스크립트 사용
-scripts\server.bat
-```
-
-### 브라우저에서 열기
-```
-http://localhost:8000/public/index.html
+start "" "http://localhost:8000/public/index.html"
 ```
 
 ---
@@ -33,21 +33,26 @@ http://localhost:8000/public/index.html
 
 ```
 game/
-├── src/                       # 소스 코드
-│   ├── core/                  # 핵심 게임 로직
+├── phaser.html                # 🆕 Phaser Edition 진입점 (Phase 6)
+├── src/
+│   ├── phaser/                # 🆕 Phaser Edition 소스
+│   │   ├── main.js            #   Phaser.Game 설정
+│   │   └── scenes/            #   5개 씬
+│   │       ├── BootScene.js
+│   │       ├── JobSelectScene.js
+│   │       ├── GameScene.js
+│   │       ├── HUDScene.js
+│   │       └── GameOverScene.js
+│   ├── core/                  # 핵심 게임 로직 (Vanilla)
 │   ├── features/              # 도메인별 기능
 │   ├── infrastructure/        # 외부 시스템 연동
 │   ├── ui/                    # 사용자 인터페이스
-│   └── main.js                # 진입점
-├── data/                      # 게임 데이터
-├── docs/                      # 문서
-├── test/                      # 테스트
-├── public/                    # 배포 파일
-├── scripts/                   # 개발 스크립트
-└── archive/                   # 히스토리 참고용
+│   └── main.js                # Vanilla Edition 진입점
+├── data/                      # 게임 데이터 (직업·퀘스트·아이템·업적)
+├── public/                    # Vanilla Edition HTML
+├── test/                      # 통합 테스트
+└── archive/                   # 구버전 참고용
 ```
-
-자세한 구조: [docs/architecture/NEW_STRUCTURE.md](docs/architecture/NEW_STRUCTURE.md)
 
 ---
 
@@ -66,6 +71,14 @@ game/
 - ✅ **스킬바**: 원형 쿨다운 진행바, 애니메이션, 스킬 툴팁
 - ✅ **전투 피드백**: 대미지 텍스트 (CRITICAL!, EXCELLENT!), 콤보, EXP 획득, 메소 드랍
 - ✅ **이펙트**: 화면 흔들림, 히트스톱, 크리티컬 버스트, 레벨업 빛기둥, 전직 골든필라
+
+### Phaser Edition (Phase 6)
+- ✅ **Phaser.js 3**: WebGL 우선, Canvas 폴백
+- ✅ **Arcade Physics**: 중력(1400 px/s²), 충돌 처리
+- ✅ **5개 씬 구조**: Boot → JobSelect → Game + HUD(병렬) → GameOver
+- ✅ **씬 레지스트리**: `scene.registry`로 HUDScene ↔ GameScene 통신
+- ✅ **Static Physics Group**: 플랫폼 정밀 충돌
+- ✅ **프레임 독립 물리**: `delta` 기반 쿨다운·이동
 
 ### 추가 시스템 (Phase 2.5)
 - ✅ **퀘스트 시스템**: 6개 퀘스트, 진행도 추적기, 자동 수락/완료
@@ -153,9 +166,10 @@ TOTAL                            ✅ 450/450 (100%)
   - 3개 신규 몬스터 타입 (불타는 버그, 바위 고래, 고대 드래곤)
 - ✅ **통합 테스트**: 450개 테스트 (완료 - 2026-02-09)
   - 모든 시스템 검증, 100% 통과율
-- 📋 **Phase 6**: Phaser.js 마이그레이션 (예정)
-  - Canvas 2D → Phaser.js 게임 엔진 전환
-  - 향상된 성능, 물리 엔진, 타일맵, 애니메이션
+- ✅ **Phase 6**: Phaser.js 마이그레이션 (완료 - 2026-02-10)
+  - Canvas 2D → Phaser.js 3 게임 엔진 전환
+  - WebGL 렌더링, Arcade Physics, 씬 시스템
+  - `phaser.html` 로컬 파일 직접 실행 지원
 
 ---
 
@@ -171,18 +185,18 @@ player.mp = player.maxMp // MP 완전 회복
 ---
 
 **상태:** ✅ 프로덕션 준비 완료 (450개 테스트 통과)
-**버전:** 2.5.0 (Phase 2.5-5 완료: UI 시스템 + 전체 전직 + 고급 몬스터)
-**업데이트:** 2026-02-09
+**버전:** 3.0.0 (Phase 6 완료: Phaser.js 엔진 마이그레이션)
+**업데이트:** 2026-02-10
 
 ---
 
 ## 📊 프로젝트 통계
 
-- **총 파일:** 24개 (현재 아키텍처)
+- **총 파일:** 30개+ (Phaser Edition 5개 씬 추가)
 - **총 스킬:** 36개 (직업당 12개 × 3직업)
 - **총 몬스터:** 6종
 - **총 퀘스트:** 6개
 - **총 업적:** 8개
 - **총 UI 시스템:** 13개 (컴포넌트 5개 + 스크린 4개 + 기타 4개)
-- **코드 라인:** ~4,500+ 줄
+- **코드 라인:** ~5,500+ 줄 (Phaser Edition 포함)
 - **테스트 통과율:** 100% (450/450)

@@ -94,6 +94,62 @@ export class Effect {
             case 'explosiveArrowBlast':
                 this.drawExplosiveArrowBlast(progress);
                 break;
+
+            // Phase 4: Tier 2-3 Warrior
+            case 'darkStrike':
+                this.drawDarkStrike(progress);
+                break;
+            case 'bloodBlade':
+                this.drawBloodBlade(progress);
+                break;
+            case 'heroStrike':
+                this.drawHeroStrike(progress);
+                break;
+            case 'giantRampage':
+                this.drawGiantRampage(progress);
+                break;
+
+            // Phase 4: Tier 2-3 Thief
+            case 'poisonStab':
+                this.drawPoisonStab(progress);
+                break;
+            case 'poisonTick':
+                this.drawPoisonTick(progress);
+                break;
+            case 'deadlyBlow':
+                this.drawDeadlyBlow(progress);
+                break;
+            case 'hundredDaggers':
+                this.drawHundredDaggers(progress);
+                break;
+            case 'soulStrike':
+                this.drawSoulStrike(progress);
+                break;
+
+            // Phase 4: Tier 2-3 Archer
+            case 'windShot':
+                this.drawWindShot(progress);
+                break;
+            case 'enhancedRain':
+                this.drawEnhancedRain(progress);
+                break;
+            case 'infiniteShot':
+                this.drawInfiniteShot(progress);
+                break;
+            case 'allDayRain':
+                this.drawAllDayRain(progress);
+                break;
+
+            // Phase 5: Monster special attacks
+            case 'groundSlam':
+                this.drawGroundSlam(progress);
+                break;
+            case 'dragonExplosion':
+                this.drawDragonExplosion(progress);
+                break;
+            case 'fireBugAura':
+                this.drawFireBugAura(progress);
+                break;
         }
 
         ctx.restore();
