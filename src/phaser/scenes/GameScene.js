@@ -39,6 +39,9 @@ export default class GameScene extends Phaser.Scene {
         // ── 배경 그리기 ──
         this.createBackground();
 
+        // ── 물리 월드 경계 명시 설정 ──
+        this.physics.world.setBounds(0, 0, 1000, 600);
+
         // ── 플랫폼 생성 (staticGroup 사용) ──
         this.platformGroup = this.physics.add.staticGroup();
         this.createPlatforms();
@@ -84,6 +87,7 @@ export default class GameScene extends Phaser.Scene {
         this.time.delayedCall(500, this.spawnMonster, [], this);
 
         console.log('[GameScene] Started with job:', this.selectedJob);
+
     }
 
     // ──────────────────────────────────────────────────────────
@@ -131,10 +135,11 @@ export default class GameScene extends Phaser.Scene {
     //  배경 (정적 드로잉, create 시 1회)
     // ──────────────────────────────────────────────────────────
     createBackground() {
-        const g = this.add.graphics();
-        // 그라디언트 배경
-        g.fillGradientStyle(0x1a1a3e, 0x1a1a3e, 0x2a2a5e, 0x2a2a5e, 1);
-        g.fillRect(0, 0, 1000, 600);
+        // 배경은 별도 레이어에 1회만 그림 (drawLayer와 분리해 fillGradientStyle 혼용 버그 방지)
+        this.bgLayer = this.add.graphics();
+        this.bgLayer.setDepth(-1);
+        this.bgLayer.fillGradientStyle(0x1a1a3e, 0x1a1a3e, 0x2a2a5e, 0x2a2a5e, 1);
+        this.bgLayer.fillRect(0, 0, 1000, 600);
     }
 
     // ──────────────────────────────────────────────────────────
@@ -155,9 +160,10 @@ export default class GameScene extends Phaser.Scene {
                 }
             }
 
-            // 물리 바디: staticGroup.create() + refreshBody()로 안정적인 정적 바디
+            // 물리 바디: staticGroup.create() — 텍스처가 1×1이므로 body.setSize()로 명시 지정
             const img = this.platformGroup.create(p.x + p.w / 2, p.y + p.h / 2, 'pixel');
             img.setDisplaySize(p.w, p.h);
+            img.body.setSize(p.w, p.h);   // ← 필수: 1×1 기본값 → 실제 크기로 교체
             img.refreshBody();
             img.setAlpha(0);
         });
@@ -167,10 +173,11 @@ export default class GameScene extends Phaser.Scene {
     //  플레이어 생성
     // ──────────────────────────────────────────────────────────
     createPlayer() {
-        const job = JOBS[this.selectedJob];
-        // 투명 물리 바디 (1px 텍스처를 40×60으로)
+        // setDisplaySize를 사용하면 DynamicBody.setSize가 scaleX/Y를 곱해
+        // body 크기가 40*40=1600, 60*60=3600이 되는 버그 발생.
+        // 플레이어는 setAlpha(0)으로 투명하므로 setDisplaySize 불필요.
+        // scale=1 상태에서 setSize(40,60) → body 정확히 40×60으로 설정됨.
         this.playerBody = this.physics.add.image(200, 420, 'pixel');
-        this.playerBody.setDisplaySize(40, 60);
         this.playerBody.body.setSize(40, 60);
         this.playerBody.body.setMaxVelocityY(1800);
         this.playerBody.setAlpha(0);
@@ -984,9 +991,9 @@ export default class GameScene extends Phaser.Scene {
         const g = this.drawLayer;
         g.clear();
 
-        // 별 (트윙클)
+        // 별 (트윙클) — alpha 음수 방지 클램핑
         for (const star of this.stars) {
-            const alpha = 0.3 + 0.4 * Math.sin(time / 1000 + star.phase);
+            const alpha = Math.max(0, 0.3 + 0.4 * Math.sin(time / 1000 + star.phase));
             g.fillStyle(0xffffff, alpha);
             g.fillCircle(star.x, star.y, star.r);
         }
@@ -1006,7 +1013,16 @@ export default class GameScene extends Phaser.Scene {
         }
 
         // 플레이어
-        this.drawPlayer(g, time);
+        try {
+            this.drawPlayer(g, time);
+        } catch (e) {
+            if (!this._playerDrawError) {
+                console.error('[drawPlayer ERROR]', e.message, e.stack);
+                this._playerDrawError = true;
+            }
+            g.fillStyle(0xff0000, 1);
+            g.fillCircle(this.playerBody?.x ?? 200, this.playerBody?.y ?? 300, 20);
+        }
 
         // 파티클
         this.drawParticles(g);

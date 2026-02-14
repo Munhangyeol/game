@@ -1398,3 +1398,7 @@ Run tests in this order:
 6. Cross-job balance
 
 If any critical system fails, report it immediately and suggest fixes.
+
+
+## Save Report 
+Save or Update Result of Integration-test at /game/test/통합테스트_보고서.md

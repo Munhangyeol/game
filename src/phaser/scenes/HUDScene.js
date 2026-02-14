@@ -6,6 +6,9 @@ export default class HUDScene extends Phaser.Scene {
     }
 
     create() {
+        // GameScene이 HUD 뒤로 보이도록 카메라 배경을 명시적으로 투명하게 설정
+        this.cameras.main.setBackgroundColor('rgba(0,0,0,0)');
+
         // HUD 요소들 생성
         this.createHPMPBars();
         this.createSkillBar();

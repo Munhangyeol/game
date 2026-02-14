@@ -464,16 +464,96 @@ setLevel(9)             // 레벨 9로 설정
 
 ---
 
-### Phase 6 — 파일 분리
+### Phase 6 — Phaser.js 엔진 마이그레이션 ✅ **완료** (2026-02-12)
 
-목표: 단일 파일 `game.html`을 ESM 모듈로 단계적으로 분리하여 유지보수성을 확보.
+목표: `game.html` 단일 파일 → Phaser 3 엔진 기반 멀티씬 구조로 전환.
 
-- [ ] `state.js` 생성 — `game`, `player`, `canvas`, `ctx` 공유 상태를 단일 소스로 export
-- [ ] `data/jobs.js` 분리 — `JOBS` (tiers 포함) + `PROMOTION_LEVELS` 정적 데이터
-- [ ] `data/monsters.js` 분리 — 몬스터 타입 정의 객체 (기존 + Phase 5 추가분)
-- [ ] `entities/` 분리 — `monster.js` (Monster 클래스), `projectile.js` (Projectile 클래스), `effect.js` (Effect 클래스 및 draw* 메서드 전부)
-- [ ] `systems/` 분리 — `combat.js` (basicAttack, useSkill, perform* 전부), `levelup.js` (checkLevelUp, 전직 트리거·처리), `particles.js` (createParticles, createDamageText)
-- [ ] `ui/` 분리 — `hud.js` (updateUI, updateSkillBar, updateBuffBar), `jobselect.js` (selectJob, 직업 선택 화면 로직)
-- [ ] `main.js` 생성 — 진입점으로 모든 모듈을 import, gameLoop과 키 이벤트 바인딩 종합 / `index.html`로 진입점 변경
+- [x] Phaser 3 게임 설정 (1000×600, Arcade Physics, 1400px/s² 중력)
+- [x] BootScene — 텍스처 생성 후 JobSelectScene으로 전환
+- [x] JobSelectScene — 직업 선택 UI (Phaser Graphics+Text 기반)
+- [x] GameScene — 메인 게임 로직 (플레이어, 몬스터, 전투, 물리)
+- [x] HUDScene — 병렬 UI 씬 (HP/MP/EXP 바, 스킬 슬롯, registry 통신)
+- [x] GameOverScene — 게임오버 화면
+- [x] `phaser.html` 진입점, `src/phaser/` 디렉토리 구조 확립
+
+**핵심 아키텍처:**
+- 물리 바디: `physics.add.image(x, y, 'pixel')` (1px 투명 텍스처)
+- 시각 렌더링: `drawLayer` (Graphics)에서 매 프레임 clear() 후 그리기
+- 씬 통신: `registry.set('hud', data)` → HUDScene 읽기
+- 쿨다운: 프레임 기반 → `dt = delta / (1000/60)` 변환
 
 의존: Phase 3~5 완료 후 (기능 추가가 끝난 후에 분리)
+
+---
+
+### Phase 7 — 스프라이트 에셋 도입 + DOM UI 마이그레이션
+
+목표: fillRect/fillCircle 도형 렌더링 → 픽셀아트 스프라이트 교체 (Part A),
+Phaser Graphics UI → HTML/CSS DOM UI 교체 (Part B).
+
+#### Part A: 스프라이트 에셋 도입 (코드 생성 방식)
+
+외부 PNG 없이 BootScene에서 `generateTexture()`로 프레임별 텍스처 생성.
+
+| 텍스처 세트 | 크기 | 프레임 수 |
+|------------|------|----------|
+| `warrior/thief/archer_idle` | 48×64 | 4 |
+| `warrior/thief/archer_walk` | 48×64 | 6 |
+| `warrior/thief/archer_attack` | 48×64 | 4 |
+| `warrior/thief/archer_jump` | 48×64 | 2 |
+| `slime_idle` | 36×30 | 4 |
+| `mushroom_idle` | 40×50 | 4 |
+| `stump_idle` | 38×55 | 4 |
+| `fireBug/rockWhale/dragon_idle` | 44×35~80×65 | 4 |
+
+**BootScene.js 변경:**
+- `drawJobFrame(g, job, anim, frame, w, h)` 함수: idle(호흡)/walk(다리 교차)/attack(준비→강타→후딜)/jump(굽힘→뻗음) 포즈
+- 직업별 고유 요소: 전사(투구+갑옷+검), 도적(스파이크헤어+망토+단검2), 궁수(후드+활)
+- `drawMonsterFrame(g, key, frame, w, h)` 함수: 몬스터별 특징적 애니메이션
+- 생성 후 `anims.create()` 등록 (idle -1 repeat / attack 0 repeat)
+
+**GameScene.js 변경:**
+- `createPlayer()`: physics image(바디) + `this.add.sprite()`(시각) 분리
+- `drawPlayer()` → `updatePlayerSprite()`: 상태별 애니메이션 play (idle/walk/attack/jump)
+- `drawMonster()` → `updateMonsterSprite()`: 스폰 시 스프라이트 생성, 매 프레임 위치 동기화
+- hitFlash → `sprite.setTint(0xff4444)` / `sprite.clearTint()`
+- 버프 오라는 drawLayer(Graphics) 유지
+
+- [ ] BootScene.js — `drawJobFrame()` 함수 구현 (직업 3종 × 4가지 애니메이션 × 프레임)
+- [ ] BootScene.js — `drawMonsterFrame()` 함수 구현 (몬스터 6종 × 4프레임)
+- [ ] BootScene.js — `anims.create()` 애니메이션 등록
+- [ ] GameScene.js — `createPlayer()` 스프라이트 분리
+- [ ] GameScene.js — `updatePlayerSprite()` 상태별 애니메이션
+- [ ] GameScene.js — `spawnMonsterSprite()` + `updateMonsterSprite()`
+
+#### Part B: DOM UI 마이그레이션
+
+Phaser 씬(HUDScene/JobSelectScene/GameOverScene) → HTML/CSS DOM으로 교체.
+
+**phaser.html 구조:**
+```
+body
+├── #game-container  (Phaser 캔버스)
+└── #ui-root  (position:absolute, z-index:10, pointer-events:none)
+    ├── #job-select-screen  (직업 선택 카드 3장)
+    ├── #hud  (HP/MP/EXP 바, 스킬슬롯, 버프바, 정보패널)
+    └── #game-over-screen  (레벨/처치수 + 재시작/직업변경 버튼)
+```
+
+**이벤트 통신 방식:**
+- `GameScene.updateHUD()` → `window.dispatchEvent(new CustomEvent('gameHudUpdate', { detail: {...} }))`
+- 게임오버 → `window.dispatchEvent(new CustomEvent('gameOver', { detail: {...} }))`
+- 직업 선택 → DOM 버튼 클릭 → `window.dispatchEvent(new CustomEvent('jobSelected', { detail: {job} }))`
+
+**main.js 변경:** 씬 목록에서 `JobSelectScene`, `HUDScene`, `GameOverScene` 제거 → `[BootScene, GameScene]`
+
+- [ ] phaser.html — DOM 마크업(#job-select-screen, #hud, #game-over-screen) + CSS 추가
+- [ ] GameScene.js — `updateHUD()` CustomEvent 방식으로 교체
+- [ ] GameScene.js — 직업 선택/게임오버 CustomEvent 발행
+- [ ] phaser.html — DOM 이벤트 수신 스크립트 추가
+- [ ] main.js — 씬 목록 정리 (HUDScene/JobSelectScene/GameOverScene 제거)
+- [ ] JobSelectScene.js, HUDScene.js, GameOverScene.js 파일 삭제
+
+**구현 순서:** Part B 먼저 (게임 로직 변경 없이 UI 교체) → Part A (스프라이트 교체)
+
+의존: Phase 6 완료 후

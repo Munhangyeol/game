@@ -30,7 +30,11 @@
       "Bash(npx http-server -p 8000 -c-1)",
       "Bash(npx http-server:*)",
       "Bash(node verify-imports.js:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(ls -la \"C:\\\\claude-code\\\\game\\\\src\\\\core\\\\game\"\" && ls -la \"C:claude-codegamesrcfeatures\"\")",
+      "Bash(ls \"C:\\\\claude-code\\\\game\\\\src\\\\entities\"\" && echo \"---\" && ls \"C:claude-codegamesrcsystems\"\")",
+      "Bash(python server.py:*)",
+      "Bash(python -c:*)"
     ]
   }
 }
