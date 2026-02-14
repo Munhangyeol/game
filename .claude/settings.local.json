@@ -34,7 +34,8 @@
       "Bash(ls -la \"C:\\\\claude-code\\\\game\\\\src\\\\core\\\\game\"\" && ls -la \"C:claude-codegamesrcfeatures\"\")",
       "Bash(ls \"C:\\\\claude-code\\\\game\\\\src\\\\entities\"\" && echo \"---\" && ls \"C:claude-codegamesrcsystems\"\")",
       "Bash(python server.py:*)",
-      "Bash(python -c:*)"
+      "Bash(python -c:*)",
+      "Bash(del \"C:\\\\claude-code\\\\game\\\\src\\\\phaser\\\\scenes\\\\JobSelectScene.js\" \"C:\\\\claude-code\\\\game\\\\src\\\\phaser\\\\scenes\\\\HUDScene.js\" \"C:\\\\claude-code\\\\game\\\\src\\\\phaser\\\\scenes\\\\GameOverScene.js\")"
     ]
   }
 }
