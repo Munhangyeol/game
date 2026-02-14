@@ -16,14 +16,699 @@
       font-family: 'Segoe UI', sans-serif;
       overflow: hidden;
     }
-    canvas {
-      display: block;
-      box-shadow: 0 0 40px rgba(100, 100, 255, 0.3);
-      border: 1px solid rgba(100, 100, 255, 0.2);
+
+    /* ── 게임 래퍼 ── */
+    #game-wrapper {
+      position: relative;
+      width: 1000px;
+      height: 600px;
+      box-shadow: 0 0 40px rgba(100,100,255,0.3);
+      border: 1px solid rgba(100,100,255,0.2);
+      flex-shrink: 0;
     }
+    #game-wrapper canvas { display: block; }
+
+    /* ── UI 루트 (Phaser 캔버스 위 오버레이) ── */
+    #ui-root {
+      position: absolute;
+      top: 0; left: 0;
+      width: 1000px; height: 600px;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    /* ════════════════════════════════════════
+       직업 선택 화면
+    ════════════════════════════════════════ */
+    #job-select-screen {
+      display: none;
+      position: absolute;
+      inset: 0;
+      pointer-events: all;
+      background: linear-gradient(180deg, #1a1a3e 0%, #2a1a4e 100%);
+      flex-direction: column;
+      align-items: center;
+      padding: 30px 0 20px;
+    }
+    #job-select-screen h1 {
+      font-size: 38px;
+      color: #fff;
+      text-shadow: 0 0 20px #4466ff;
+      -webkit-text-stroke: 1px #4466ff;
+      margin-bottom: 8px;
+    }
+    #job-select-screen .subtitle {
+      font-size: 18px;
+      color: #aaaadd;
+      margin-bottom: 24px;
+    }
+    .job-cards { display: flex; gap: 28px; align-items: flex-start; }
+
+    .job-card {
+      width: 270px;
+      background: rgba(10,10,42,0.95);
+      border: 2px solid var(--jc);
+      border-radius: 12px;
+      padding: 18px 16px 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+    }
+    .job-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 8px 28px var(--jc-dim);
+      border-color: rgba(255,255,255,0.55);
+    }
+    .job-card-icon { font-size: 48px; line-height: 1.1; }
+    .job-card-name {
+      font-size: 24px;
+      font-weight: bold;
+      color: var(--jc);
+    }
+    .job-stat-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      font-size: 13px;
+      color: #ccccee;
+    }
+    .job-stat-label { width: 68px; flex-shrink: 0; }
+    .job-stat-bar-bg {
+      flex: 1;
+      height: 11px;
+      background: #2a2a4a;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .job-stat-bar-fill {
+      height: 100%;
+      border-radius: 6px;
+      background: var(--jc);
+    }
+    .job-skills-title {
+      font-size: 12px;
+      color: #8888bb;
+      font-weight: bold;
+      margin-top: 4px;
+    }
+    .job-skill-item { font-size: 12px; color: #aaaacc; text-align: center; }
+    .job-select-btn {
+      width: calc(100% - 8px);
+      padding: 10px;
+      margin-top: 8px;
+      background: var(--jc);
+      border: none;
+      border-radius: 8px;
+      font-size: 17px;
+      color: #fff;
+      font-weight: bold;
+      cursor: pointer;
+      pointer-events: all;
+      font-family: 'Segoe UI', sans-serif;
+      transition: filter 0.1s, transform 0.1s;
+    }
+    .job-select-btn:hover { filter: brightness(1.25); transform: scale(1.04); }
+    .job-select-btn:active { filter: brightness(0.9); transform: scale(0.97); }
+    #version-text {
+      position: absolute;
+      bottom: 8px; right: 10px;
+      font-size: 11px;
+      color: #445566;
+    }
+
+    /* ════════════════════════════════════════
+       HUD
+    ════════════════════════════════════════ */
+    #hud {
+      display: none;
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    /* 좌상단: HP/MP/EXP + 스탯 */
+    #hud-topleft {
+      position: absolute;
+      top: 10px; left: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    #hud-level {
+      font-size: 15px;
+      color: #fff;
+      font-weight: bold;
+      text-shadow: 1px 1px 3px #000;
+      margin-bottom: 2px;
+    }
+    .hud-bar-row {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      height: 18px;
+    }
+    .hud-bar-label {
+      font-size: 12px;
+      font-weight: bold;
+      width: 26px;
+      text-shadow: 1px 1px 2px #000;
+    }
+    .hud-bar-bg {
+      width: 190px;
+      height: 13px;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .hud-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.12s;
+      min-width: 2px;
+    }
+    .hud-bar-val {
+      font-size: 11px;
+      color: #ddd;
+      text-shadow: 1px 1px 2px #000;
+      min-width: 72px;
+    }
+    .hp-label  { color: #ff6666; }
+    .hp-bg     { background: #330000; }
+    #hp-fill   { background: #ff4444; }
+    .mp-label  { color: #6688ff; }
+    .mp-bg     { background: #000033; }
+    #mp-fill   { background: #4466ff; }
+    .exp-label { color: #66ff66; }
+    .exp-bg    { background: #003300; }
+    #exp-fill  { background: #44ff44; }
+
+    #hud-stats { display: flex; gap: 10px; margin-top: 3px; }
+    #hud-stats span {
+      font-size: 12px; color: #fff;
+      text-shadow: 1px 1px 2px #000;
+    }
+
+    /* 버프 바 */
+    #buff-bar {
+      position: absolute;
+      top: 154px; left: 10px;
+      display: flex; gap: 6px;
+    }
+    .buff-icon {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1px;
+      background: rgba(0,0,0,0.55);
+      border: 1px solid rgba(255,200,68,0.55);
+      border-radius: 6px;
+      padding: 3px 6px;
+      min-width: 42px;
+    }
+    .buff-icon-emoji { font-size: 18px; }
+    .buff-icon-secs  { font-size: 11px; color: #ffcc44; font-weight: bold; }
+    .buff-icon-secs.warn { color: #ff4444; }
+
+    /* 우상단: 콤보 + 메소 */
+    #hud-topright {
+      position: absolute;
+      top: 140px; right: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    #combo-display {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      background: rgba(0,0,0,0.4);
+      border-radius: 8px;
+      padding: 5px 14px;
+    }
+    #combo-count {
+      font-size: 28px; font-weight: bold; color: #fff;
+      text-shadow: 1px 1px 3px #000;
+    }
+    .combo-label { font-size: 12px; color: #888; }
+    #meso-display {
+      font-size: 14px; color: #ffcc44;
+      text-shadow: 1px 1px 2px #000;
+      background: rgba(0,0,0,0.38);
+      border-radius: 6px;
+      padding: 3px 10px;
+    }
+
+    /* 스킬 바 */
+    #skill-bar {
+      position: absolute;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex; gap: 14px;
+    }
+    .skill-slot {
+      position: relative;
+      width: 68px; height: 68px;
+      background: rgba(10,10,42,0.9);
+      border: 2px solid #444455;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .skill-slot.ready {
+      border-color: #44ffff;
+      box-shadow: 0 0 10px rgba(68,255,255,0.45);
+    }
+    .skill-key {
+      position: absolute;
+      top: 4px; left: 6px;
+      font-size: 11px; color: #fff; font-weight: bold;
+      text-shadow: 1px 1px 2px #000;
+      z-index: 5;
+    }
+    .skill-icon-text {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -58%);
+      font-size: 26px;
+      z-index: 0;
+    }
+    .skill-name-label {
+      position: absolute;
+      bottom: 5px; left: 50%;
+      transform: translateX(-50%);
+      font-size: 9px; color: #bbb;
+      white-space: nowrap;
+      z-index: 0;
+    }
+    .skill-cd-overlay {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%;
+      background: rgba(0,0,0,0.72);
+      z-index: 1;
+    }
+    .skill-cd-text {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 17px; color: #fff; font-weight: bold;
+      text-shadow: 1px 1px 3px #000;
+      z-index: 3;
+    }
+
+    /* 채팅 로그 */
+    #chat-log {
+      position: absolute;
+      bottom: 106px; left: 10px;
+      display: flex; flex-direction: column-reverse; gap: 2px;
+    }
+    .chat-msg { font-size: 12px; color: #cccccc; text-shadow: 1px 1px 2px #000; }
+
+    /* 일시정지 오버레이 */
+    #pause-overlay {
+      display: none;
+      position: absolute; inset: 0;
+      background: rgba(0,0,0,0.5);
+      align-items: center; justify-content: center;
+    }
+    .pause-panel {
+      background: rgba(26,26,74,0.95);
+      border: 2px solid #4466ff;
+      border-radius: 16px;
+      padding: 38px 60px;
+      text-align: center;
+    }
+    .pause-title {
+      font-size: 32px; color: #fff; font-weight: bold;
+      text-shadow: 0 0 12px #4466ff;
+      margin-bottom: 12px;
+    }
+    .pause-hint { font-size: 17px; color: #aaaadd; }
+
+    /* ════════════════════════════════════════
+       게임오버 화면
+    ════════════════════════════════════════ */
+    #game-over-screen {
+      display: none;
+      position: absolute; inset: 0;
+      background: rgba(0,0,0,0.82);
+      align-items: center; justify-content: center;
+      pointer-events: all;
+    }
+    .gameover-panel {
+      background: rgba(26,8,8,0.97);
+      border: 2px solid #ff2222;
+      border-radius: 16px;
+      padding: 38px 48px 30px;
+      width: 400px; text-align: center;
+    }
+    .gameover-title {
+      font-size: 36px; color: #ff4444; font-weight: bold;
+      text-shadow: 0 0 16px #ff2222;
+      margin-bottom: 22px;
+    }
+    .gameover-stats { width: 100%; margin-bottom: 20px; }
+    .gameover-stat-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 9px 0; border-bottom: 1px solid #2a2a44; font-size: 16px;
+    }
+    .gameover-stat-row:last-child { border-bottom: none; }
+    .gameover-stat-label { color: #9999bb; }
+    .gameover-stat-value { color: #fff; font-weight: bold; }
+    .gameover-buttons {
+      display: flex; gap: 14px; justify-content: center; margin-bottom: 12px;
+    }
+    .gameover-btn {
+      padding: 11px 22px; border: none; border-radius: 8px;
+      font-size: 17px; font-weight: bold; color: #fff;
+      cursor: pointer; font-family: 'Segoe UI', sans-serif;
+      transition: filter 0.1s, transform 0.1s;
+    }
+    .gameover-btn:hover  { filter: brightness(1.2); transform: scale(1.04); }
+    .gameover-btn:active { transform: scale(0.96); }
+    .gameover-btn-restart   { background: #44aa44; }
+    .gameover-btn-changejob { background: #4444aa; }
+    .gameover-hint { font-size: 13px; color: #445566; }
   </style>
 </head>
 <body>
-  <script type="module" src="./src/phaser/main.js?v=1"></script>
+  <div id="game-wrapper">
+    <div id="game-container"></div>
+
+    <div id="ui-root">
+
+      <!-- ─── 직업 선택 화면 ─── -->
+      <div id="job-select-screen">
+        <h1>⚔ MapleQuest RPG</h1>
+        <p class="subtitle">직업을 선택하세요</p>
+        <div class="job-cards" id="job-cards-container"></div>
+        <div id="version-text">Phaser Edition v7.0</div>
+      </div>
+
+      <!-- ─── HUD ─── -->
+      <div id="hud">
+        <!-- 좌상단: HP / MP / EXP + 스탯 -->
+        <div id="hud-topleft">
+          <div id="hud-level">Lv.1 전사</div>
+          <div class="hud-bar-row">
+            <span class="hud-bar-label hp-label">HP</span>
+            <div class="hud-bar-bg hp-bg"><div class="hud-bar-fill" id="hp-fill"></div></div>
+            <span class="hud-bar-val" id="hp-val">150/150</span>
+          </div>
+          <div class="hud-bar-row">
+            <span class="hud-bar-label mp-label">MP</span>
+            <div class="hud-bar-bg mp-bg"><div class="hud-bar-fill" id="mp-fill"></div></div>
+            <span class="hud-bar-val" id="mp-val">30/30</span>
+          </div>
+          <div class="hud-bar-row">
+            <span class="hud-bar-label exp-label">EXP</span>
+            <div class="hud-bar-bg exp-bg"><div class="hud-bar-fill" id="exp-fill"></div></div>
+            <span class="hud-bar-val" id="exp-val">0/100</span>
+          </div>
+          <div id="hud-stats">
+            <span id="stat-atk">⚔️ 15</span>
+            <span id="stat-crit">💥 10%</span>
+            <span id="stat-kills">💀 0</span>
+          </div>
+        </div>
+
+        <!-- 버프 바 -->
+        <div id="buff-bar"></div>
+
+        <!-- 우상단: 콤보 + 메소 -->
+        <div id="hud-topright">
+          <div id="combo-display">
+            <span id="combo-count">0</span>
+            <span class="combo-label">COMBO</span>
+          </div>
+          <div id="meso-display">💰 0</div>
+        </div>
+
+        <!-- 스킬 바 -->
+        <div id="skill-bar">
+          <div class="skill-slot" id="skill-slot-0">
+            <span class="skill-key">Z</span>
+            <span class="skill-icon-text" id="skill-icon-0"></span>
+            <div class="skill-cd-overlay" id="skill-cd-0" style="height:0"></div>
+            <span class="skill-cd-text" id="skill-cd-text-0"></span>
+            <span class="skill-name-label" id="skill-name-0">스킬1</span>
+          </div>
+          <div class="skill-slot" id="skill-slot-1">
+            <span class="skill-key">X</span>
+            <span class="skill-icon-text" id="skill-icon-1"></span>
+            <div class="skill-cd-overlay" id="skill-cd-1" style="height:0"></div>
+            <span class="skill-cd-text" id="skill-cd-text-1"></span>
+            <span class="skill-name-label" id="skill-name-1">스킬2</span>
+          </div>
+          <div class="skill-slot" id="skill-slot-2">
+            <span class="skill-key">C</span>
+            <span class="skill-icon-text" id="skill-icon-2"></span>
+            <div class="skill-cd-overlay" id="skill-cd-2" style="height:0"></div>
+            <span class="skill-cd-text" id="skill-cd-text-2"></span>
+            <span class="skill-name-label" id="skill-name-2">스킬3</span>
+          </div>
+        </div>
+
+        <!-- 채팅 로그 -->
+        <div id="chat-log">
+          <div class="chat-msg" id="chat-0"></div>
+          <div class="chat-msg" id="chat-1"></div>
+          <div class="chat-msg" id="chat-2"></div>
+          <div class="chat-msg" id="chat-3"></div>
+          <div class="chat-msg" id="chat-4"></div>
+        </div>
+
+        <!-- 일시정지 오버레이 -->
+        <div id="pause-overlay">
+          <div class="pause-panel">
+            <div class="pause-title">⏸ 일시정지</div>
+            <div class="pause-hint">[P] 또는 [ESC] 계속하기</div>
+            <div class="pause-hint" style="color:#445566;font-size:13px;margin-top:8px">Phaser Edition</div>
+          </div>
+        </div>
+      </div><!-- end #hud -->
+
+      <!-- ─── 게임오버 화면 ─── -->
+      <div id="game-over-screen">
+        <div class="gameover-panel">
+          <div class="gameover-title">💀 GAME OVER</div>
+          <div class="gameover-stats" id="gameover-stats"></div>
+          <div class="gameover-buttons">
+            <button class="gameover-btn gameover-btn-restart"   id="btn-restart">재시작</button>
+            <button class="gameover-btn gameover-btn-changejob" id="btn-changejob">직업 변경</button>
+          </div>
+          <div class="gameover-hint">[R] 재시작 &nbsp;|&nbsp; [J] 직업 변경</div>
+        </div>
+      </div>
+
+    </div><!-- end #ui-root -->
+  </div><!-- end #game-wrapper -->
+
+  <!-- Phaser 게임 -->
+  <script type="module" src="./src/phaser/main.js?v=7"></script>
+
+  <!-- DOM UI 로직 -->
+  <script type="module">
+    import { JOBS } from './data/jobs.js';
+
+    // hex → rgba 헬퍼
+    function hexToRgba(hex, a) {
+      const r = parseInt(hex.slice(1,3), 16);
+      const g = parseInt(hex.slice(3,5), 16);
+      const b = parseInt(hex.slice(5,7), 16);
+      return `rgba(${r},${g},${b},${a})`;
+    }
+
+    // ══════════════════════════════════
+    //  직업 선택 카드 동적 생성
+    // ══════════════════════════════════
+    const cardsContainer = document.getElementById('job-cards-container');
+    ['warrior','thief','archer'].forEach(jobId => {
+      const job = JOBS[jobId];
+      const c   = job.color;
+
+      const card = document.createElement('div');
+      card.className = 'job-card';
+      card.style.setProperty('--jc',     c);
+      card.style.setProperty('--jc-dim', hexToRgba(c, 0.35));
+
+      const stats = [
+        { label:'❤️ HP',  pct: job.baseHp    / 150 * 100 },
+        { label:'⚡ 속도', pct: job.speed      /   7 * 100 },
+        { label:'💪 공격', pct: job.baseAttack /  18 * 100 },
+      ];
+
+      card.innerHTML = `
+        <div class="job-card-icon">${job.icon}</div>
+        <div class="job-card-name">${job.tiers[0].name}</div>
+        ${stats.map(s => `
+          <div class="job-stat-row">
+            <span class="job-stat-label">${s.label}</span>
+            <div class="job-stat-bar-bg">
+              <div class="job-stat-bar-fill" style="width:${Math.max(4,s.pct)}%"></div>
+            </div>
+          </div>
+        `).join('')}
+        <div class="job-skills-title">【 스킬 】</div>
+        ${job.tiers[0].skills.map(s => `
+          <div class="job-skill-item">${s.icon||'•'} [${s.key}] ${s.name}</div>
+        `).join('')}
+        <button class="job-select-btn">선택하기</button>
+      `;
+
+      card.querySelector('.job-select-btn').addEventListener('click', e => {
+        e.stopPropagation();
+        window.dispatchEvent(new CustomEvent('jobSelected', { detail: { job: jobId } }));
+      });
+
+      cardsContainer.appendChild(card);
+    });
+
+    // ══════════════════════════════════
+    //  HUD 업데이트 (매 프레임 수신)
+    // ══════════════════════════════════
+    window.addEventListener('gameHudUpdate', e => {
+      const d    = e.detail;
+      const job  = JOBS[d.job];
+      const tier = job.tiers[d.tier];
+
+      // 레벨/직업
+      document.getElementById('hud-level').textContent = `Lv.${d.level} ${tier.icon}${tier.name}`;
+
+      // HP
+      const hpRatio = d.hp / d.maxHp;
+      const hpFill  = document.getElementById('hp-fill');
+      hpFill.style.width      = (Math.max(0, hpRatio) * 100) + '%';
+      hpFill.style.background = hpRatio > 0.5 ? '#ff4444' : hpRatio > 0.25 ? '#ff8800' : '#ff2222';
+      document.getElementById('hp-val').textContent = `${Math.ceil(d.hp)}/${d.maxHp}`;
+
+      // MP
+      document.getElementById('mp-fill').style.width = (Math.max(0, d.mp / d.maxMp) * 100) + '%';
+      document.getElementById('mp-val').textContent  = `${Math.ceil(d.mp)}/${d.maxMp}`;
+
+      // EXP
+      document.getElementById('exp-fill').style.width = (Math.max(0, d.exp / d.expToLevel) * 100) + '%';
+      document.getElementById('exp-val').textContent  = `${d.exp}/${d.expToLevel}`;
+
+      // 스탯
+      document.getElementById('stat-atk').textContent   = `⚔️ ${Math.floor(d.attack)}`;
+      document.getElementById('stat-crit').textContent  = `💥 ${d.critChance.toFixed(1)}%`;
+      document.getElementById('stat-kills').textContent = `💀 ${d.kills}`;
+
+      // 스킬 바
+      for (let i = 0; i < 3; i++) {
+        const skill   = d.skills?.[i];
+        const cd      = Math.max(0, d.skillCooldowns[i]);
+        const isReady = cd <= 0;
+        const slot    = document.getElementById(`skill-slot-${i}`);
+
+        slot.className = 'skill-slot' + (isReady ? ' ready' : '');
+
+        if (skill) {
+          document.getElementById(`skill-icon-${i}`).textContent = isReady ? (skill.icon || '?') : '';
+          const nm = skill.name.length > 6 ? skill.name.slice(0, 6) : skill.name;
+          document.getElementById(`skill-name-${i}`).textContent = nm;
+
+          const overlay = document.getElementById(`skill-cd-${i}`);
+          const cdText  = document.getElementById(`skill-cd-text-${i}`);
+          if (cd > 0) {
+            overlay.style.height = (Math.min(1, cd / skill.cooldown) * 100) + '%';
+            cdText.textContent   = (cd / 60).toFixed(1);
+          } else {
+            overlay.style.height = '0';
+            cdText.textContent   = '';
+          }
+        }
+      }
+
+      // 콤보
+      const comboEl = document.getElementById('combo-display');
+      if (d.combo >= 2) {
+        comboEl.style.display = 'flex';
+        const cnt = document.getElementById('combo-count');
+        cnt.textContent = d.combo;
+        cnt.style.color = d.combo >= 50 ? '#ff2244' : d.combo >= 20 ? '#ffaa00' : '#ffffff';
+      } else {
+        comboEl.style.display = 'none';
+      }
+
+      // 메소
+      document.getElementById('meso-display').textContent = `💰 ${d.meso}`;
+
+      // 버프 바
+      const buffBar = document.getElementById('buff-bar');
+      buffBar.innerHTML = '';
+      Object.entries(d.buffs).forEach(([, buff]) => {
+        const secs = Math.ceil(buff.duration / 60);
+        const icon = buff.icon || '✨';
+        const div  = document.createElement('div');
+        div.className = 'buff-icon';
+        div.innerHTML = `<span class="buff-icon-emoji">${icon}</span><span class="buff-icon-secs${secs <= 3 ? ' warn' : ''}">${secs}s</span>`;
+        buffBar.appendChild(div);
+      });
+
+      // 채팅
+      if (d.chatMessages) {
+        for (let i = 0; i < 5; i++) {
+          const msg = d.chatMessages[i];
+          document.getElementById(`chat-${i}`).textContent = msg ? msg.text : '';
+        }
+      }
+
+      // 일시정지
+      document.getElementById('pause-overlay').style.display = d.paused ? 'flex' : 'none';
+    });
+
+    // ══════════════════════════════════
+    //  게임오버
+    // ══════════════════════════════════
+    let _lastStats = null;
+
+    window.addEventListener('gameOver', e => {
+      _lastStats = e.detail;
+      const s = e.detail;
+      const t    = Math.floor((s.playFrames || 0) / 60);
+      const mins = Math.floor(t / 60);
+      const secs = t % 60;
+
+      document.getElementById('gameover-stats').innerHTML = [
+        { label: '도달 레벨',     value: `Lv.${s.level || 1}`    },
+        { label: '처치한 몬스터', value: `${s.kills || 0}마리`    },
+        { label: '획득 메소',     value: `${s.meso || 0}메소`     },
+        { label: '플레이 시간',   value: `${mins}분 ${secs}초`    },
+      ].map(({ label, value }) => `
+        <div class="gameover-stat-row">
+          <span class="gameover-stat-label">${label}</span>
+          <span class="gameover-stat-value">${value}</span>
+        </div>
+      `).join('');
+
+      document.getElementById('hud').style.display           = 'none';
+      document.getElementById('game-over-screen').style.display = 'flex';
+    });
+
+    // 게임오버 버튼
+    document.getElementById('btn-restart').addEventListener('click', () => {
+      window.dispatchEvent(new CustomEvent('gameRestart', { detail: { job: _lastStats?.job || 'warrior' } }));
+    });
+    document.getElementById('btn-changejob').addEventListener('click', () => {
+      window.dispatchEvent(new CustomEvent('gameChangeJob'));
+    });
+
+    // R / J 키 단축키 (게임오버 화면에서)
+    document.addEventListener('keydown', e => {
+      const goScreen = document.getElementById('game-over-screen');
+      if (!goScreen.style.display || goScreen.style.display === 'none') return;
+      if (e.key === 'r' || e.key === 'R') {
+        window.dispatchEvent(new CustomEvent('gameRestart', { detail: { job: _lastStats?.job || 'warrior' } }));
+      } else if (e.key === 'j' || e.key === 'J') {
+        window.dispatchEvent(new CustomEvent('gameChangeJob'));
+      }
+    });
+  </script>
 </body>
 </html>

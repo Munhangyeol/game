@@ -80,8 +80,7 @@ export default class GameScene extends Phaser.Scene {
             phase: Math.random() * Math.PI * 2
         }));
 
-        // ── HUD 씬에 초기 데이터 전달 ──
-        this.scene.launch('HUDScene', { gameScene: this });
+        // ── DOM HUD는 gameHudUpdate CustomEvent로 업데이트됨 ──
 
         // ── 초기 몬스터 즉시 스폰 ──
         this.time.delayedCall(500, this.spawnMonster, [], this);
@@ -950,22 +949,24 @@ export default class GameScene extends Phaser.Scene {
         this.monsterNameTexts.clear();
         this.cameras.main.shake(500, 0.03);
         this.time.delayedCall(800, () => {
-            this.scene.launch('GameOverScene', {
+            window.dispatchEvent(new CustomEvent('gameOver', { detail: {
                 level: this.ps.level,
                 kills: this.ps.kills,
                 meso: this.ps.meso,
                 playFrames: this.ps.playFrames,
                 job: this.ps.job,
                 tier: this.ps.tier,
-            });
+            }}));
         });
     }
 
     // ──────────────────────────────────────────────────────────
-    //  HUD 업데이트 (HUDScene에 데이터 전달)
+    //  HUD 업데이트 (DOM에 CustomEvent 발송)
     // ──────────────────────────────────────────────────────────
     updateHUD() {
-        this.registry.set('hud', {
+        const job  = JOBS[this.ps.job];
+        const tier = job.tiers[this.ps.tier];
+        window.dispatchEvent(new CustomEvent('gameHudUpdate', { detail: {
             hp: this.ps.hp, maxHp: this.ps.maxHp,
             mp: this.ps.mp, maxMp: this.ps.maxMp,
             exp: this.ps.exp, expToLevel: this.ps.expToLevel,
@@ -977,11 +978,12 @@ export default class GameScene extends Phaser.Scene {
             combo: this.gs.combo,
             buffs: this.ps.buffs,
             skillCooldowns: this.ps.skillCooldowns,
+            skills: tier.skills.map(s => ({ name: s.name, icon: s.icon || '?', mp: s.mp, cooldown: s.cooldown })),
             job: this.ps.job,
             tier: this.ps.tier,
             paused: this.gs.paused,
             chatMessages: this.chatMessages,
-        });
+        }}));
     }
 
     // ──────────────────────────────────────────────────────────
