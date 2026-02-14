@@ -908,9 +908,9 @@ export default class GameScene extends Phaser.Scene {
 
             const job = JOBS[this.ps.job];
             this.ps.maxHp += job.hpPerLevel;
-            this.ps.hp = Math.min(this.ps.hp + job.hpPerLevel, this.ps.maxHp);
+            this.ps.hp = this.ps.maxHp;
             this.ps.maxMp += job.mpPerLevel;
-            this.ps.mp = Math.min(this.ps.mp + job.mpPerLevel, this.ps.maxMp);
+            this.ps.mp = this.ps.maxMp;
             this.ps.attack += job.attackPerLevel;
 
             // ?덈꺼???댄럺??
