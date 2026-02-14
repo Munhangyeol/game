@@ -788,6 +788,11 @@ export default class GameScene extends Phaser.Scene {
 
         m.hp -= dmg;
         m.invincible = 10;
+        // Monster hit flash (red tint)
+        if (m.sprite) {
+            m.sprite.setTint(0xff4444);
+            this.time.delayedCall(90, () => { if (m.sprite) m.sprite.clearTint(); });
+        }
         this.gs.combo++;
         this.gs.lastHitTime = this.time.now;
         this.gs.hitStop = 3;
@@ -815,7 +820,8 @@ export default class GameScene extends Phaser.Scene {
             this.ps.meso += m.meso;
             this.addEffect('monsterDie', m.x, m.y, 1, 20);
             this.showFloatText(m.x, m.y - m.h / 2 - 20, `+${m.exp} EXP`, '#ffff44');
-            this.addBurstParticles(m.x, m.y, 0xffaa00, 20);
+            this.addBurstParticles(m.x, m.y, 0xffaa00, 28);
+            if (m.mt.hpMult >= 5) this.cameras.main.shake(140, 0.007);
             // ?대쫫 ?띿뒪???뺣━
             const nt = this.monsterNameTexts.get(m.id);
             if (nt) { nt.destroy(); this.monsterNameTexts.delete(m.id); }
@@ -949,29 +955,57 @@ export default class GameScene extends Phaser.Scene {
     //  遺???띿뒪??(?곕?吏, ?? ?ㅽ궗紐???
     // ??????????????????????????????????????????????????????????
     showFloatText(x, y, text, color, isCrit = false, isBig = false) {
-        const size = isBig ? '22px' : (isCrit ? '30px' : '18px');
+        const num = parseInt(text);
+        let size;
+        if (isBig) {
+            size = '22px';
+        } else if (isCrit) {
+            size = num >= 500 ? '36px' : num >= 200 ? '30px' : '26px';
+        } else {
+            size = num >= 500 ? '24px' : num >= 100 ? '20px' : '17px';
+        }
+        const strokeColor = isCrit ? '#aa4400' : '#000000';
         const style = {
             fontSize: size,
             fontFamily: 'Arial, sans-serif',
             color: color || '#ffffff',
-            stroke: '#000000',
-            strokeThickness: isCrit ? 4 : 3,
+            stroke: strokeColor,
+            strokeThickness: isCrit ? 5 : 3,
             fontStyle: 'bold',
         };
         const t = this.add.text(x, y, String(text), style).setOrigin(0.5, 1).setDepth(100);
-        if (isCrit) t.setScale(1.3);
 
-        this.tweens.add({
-            targets: t,
-            y: y - 70,
-            alpha: 0,
-            scaleX: isCrit ? 1.0 : 1,
-            scaleY: isCrit ? 1.0 : 1,
-            duration: isCrit ? 1200 : 900,
-            ease: 'Power1',
-            onComplete: () => t.destroy()
-        });
+        if (isCrit) {
+            t.setScale(1.6);
+            this.tweens.add({
+                targets: t,
+                scaleX: 1.0,
+                scaleY: 1.0,
+                duration: 180,
+                ease: 'Back.easeOut',
+                onComplete: () => {
+                    this.tweens.add({
+                        targets: t,
+                        y: y - 85,
+                        alpha: 0,
+                        duration: 1200,
+                        ease: 'Power1',
+                        onComplete: () => t.destroy()
+                    });
+                }
+            });
+        } else {
+            this.tweens.add({
+                targets: t,
+                y: y - 65,
+                alpha: 0,
+                duration: 900,
+                ease: 'Power1',
+                onComplete: () => t.destroy()
+            });
+        }
     }
+
 
     // ??????????????????????????????????????????????????????????
     //  梨꾪똿 濡쒓렇
@@ -1196,103 +1230,67 @@ export default class GameScene extends Phaser.Scene {
     drawPlayer(g, time) {
         const bx = this.playerBody.x;
         const by = this.playerBody.y;
-        const dir = this.ps.direction;
         const job = JOBS[this.ps.job];
-        const colorHex = parseInt(job.color.replace('#', ''), 16);
-        const isInvincible = this.ps.invincible > 0;
 
-        // 臾댁쟻 ??源쒕묀??
-        if (isInvincible && Math.floor(this.ps.invincible / 5) % 2 === 0) return;
+        // Shadow under character
+        g.fillStyle(0x000000, 0.28);
+        g.fillEllipse(bx, by + 28, 38, 8);
 
-        // ?ㅼ씠?ㅽ듃 ?몃젅??
-        for (let i = 0; i < this.ps.trail.length; i++) {
-            const t = this.ps.trail[i];
-            const alpha = 0.2 - i * 0.04;
-            g.fillStyle(colorHex, alpha);
-            g.fillRect(t.x - 12, t.y - 25, 24, 50);
+        // Haste/swiftness afterimage trail
+        if (this.ps.buffs.haste || this.ps.buffs.swiftness) {
+            for (let i = 0; i < this.ps.trail.length; i++) {
+                const t = this.ps.trail[i];
+                const alpha = (0.18 - i * 0.04) * 0.8;
+                g.fillStyle(0xaa44ff, alpha);
+                g.fillEllipse(t.x, t.y - 20, 30, 50);
+            }
         }
 
-        // 踰꾪봽 ?ㅻ씪
+        // Buff aura rings
         if (this.ps.buffs.rage || this.ps.buffs.berserker || this.ps.buffs.heroicWill) {
-            const r = 35 + Math.sin(time / 100) * 5;
-            g.lineStyle(3, 0xff4400, 0.6);
-            g.strokeCircle(bx, by, r);
+            const r = 32 + Math.sin(time / 80) * 5;
+            g.lineStyle(4, 0xff4400, 0.55);
+            g.strokeCircle(bx, by - 10, r);
+            for (let k = 0; k < 4; k++) {
+                const ang = (k / 4) * Math.PI * 2 + time / 200;
+                g.fillStyle(0xff6600, 0.4);
+                g.fillCircle(bx + Math.cos(ang) * (r + 4), by - 10 + Math.sin(ang) * (r + 4) * 0.5, 4);
+            }
         }
         if (this.ps.buffs.haste || this.ps.buffs.swiftness) {
-            g.lineStyle(3, 0xaa44ff, 0.6);
-            g.strokeCircle(bx, by, 35);
+            const r = 30 + Math.sin(time / 60) * 4;
+            g.lineStyle(3, 0xaa44ff, 0.5);
+            g.strokeCircle(bx, by - 10, r);
         }
         if (this.ps.buffs.soul || this.ps.buffs.archerSoul || this.ps.buffs.keenEyes) {
-            g.lineStyle(3, 0x44ff88, 0.6);
-            g.strokeCircle(bx, by, 35);
+            const r = 32 + Math.sin(time / 90) * 4;
+            g.lineStyle(3, 0x44ff88, 0.5);
+            g.strokeCircle(bx, by - 10, r);
+            for (let k = 0; k < 3; k++) {
+                const ang = (k / 3) * Math.PI * 2 + time / 300;
+                g.fillStyle(0x44ffaa, 0.35);
+                g.fillCircle(bx + Math.cos(ang) * (r - 4), by - 10 + Math.sin(ang) * (r - 4) * 0.5, 3);
+            }
         }
         if (this.ps.buffs.holyLight || this.ps.buffs.natureBless) {
-            const r = 38 + Math.sin(time / 120) * 4;
-            g.lineStyle(3, 0xffffaa, 0.5);
-            g.strokeCircle(bx, by, r);
+            const r = 35 + Math.sin(time / 120) * 4;
+            g.lineStyle(3, 0xffffaa, 0.45);
+            g.strokeCircle(bx, by - 10, r);
+            g.lineStyle(2, 0xffff88, 0.3);
+            g.lineBetween(bx, by - 10 - r - 6, bx, by - 10 + r + 6);
+            g.lineBetween(bx - r - 6, by - 10, bx + r + 6, by - 10);
         }
 
-        // 洹몃┝??        g.fillStyle(0x000000, 0.3);
-        g.fillEllipse(bx, by + 30, 40, 10);
-
-        // 紐명넻
-        g.fillStyle(colorHex, 1);
-        g.fillRect(bx - 12, by - 10, 24, 30);
-
-        // 癒몃━
-        g.fillStyle(0xFFDEB3, 1);
-        g.fillCircle(bx, by - 20, 15);
-
-        // ??        g.fillStyle(0x000000, 1);
-        g.fillCircle(bx + dir * 5, by - 21, 3);
-
-        // 吏곸뾽蹂??ㅼ뼱/臾닿린
-        if (this.ps.job === 'warrior') {
-            // ?ш뎄
-            g.fillStyle(0x888888, 1);
-            g.fillRect(bx - 16, by - 36, 32, 16);
-            g.fillStyle(0xaaaaaa, 1);
-            g.fillRect(bx - 16, by - 38, 32, 6);
-            // 寃
-            if (this.ps.isAttacking) {
-                const sx = bx + dir * 20;
-                g.fillStyle(0xdddddd, 1);
-                g.fillRect(sx - 3 + (dir === 1 ? 0 : -20), by - 25, 4, 35);
-            }
-        } else if (this.ps.job === 'thief') {
-            // ?ㅽ뙆?댄겕 ?ㅼ뼱
-            g.fillStyle(0x222222, 1);
-            for (let s = -1; s <= 1; s++) {
-                g.fillTriangle(bx + s * 8, by - 35, bx + s * 8 - 5, by - 28, bx + s * 8 + 5, by - 28);
-            }
-            // ?④?
-            if (this.ps.isAttacking) {
-                const dx2 = bx + dir * 22;
-                g.fillStyle(0xcccccc, 1);
-                g.fillRect(dx2 - 2 + (dir === 1 ? 0 : -12), by - 15, 3, 22);
-            }
-        } else if (this.ps.job === 'archer') {
-            // ?꾨뱶
-            g.fillStyle(0x226644, 1);
-            g.fillCircle(bx, by - 20, 16);
-            g.fillStyle(0x226644, 1);
-            g.fillRect(bx - 14, by - 34, 28, 14);
-            // ??
-            if (this.ps.isAttacking) {
-                const ax = bx - dir * 16;
-                g.lineStyle(3, 0x884400, 1);
-                g.beginPath();
-                g.arc(ax, by - 10, 18, -0.8, 0.8, false);
-                g.strokePath();
-            }
-        }
-
-        // ?꾩쭅 ?④퀎 ?쒖떆 (?닿묠 ?μ떇)
+        // Tier 2+ orbiting particles
         if (this.ps.tier >= 2) {
             const auraColor = this.ps.tier >= 3 ? 0xffd700 : 0xaaaaff;
-            g.fillStyle(auraColor, 0.8);
-            g.fillCircle(bx - 14, by - 5, 5);
-            g.fillCircle(bx + 14, by - 5, 5);
+            const pulseR = 3 + Math.sin(time / 150) * 1.5;
+            const orbitCount = this.ps.tier >= 3 ? 4 : 2;
+            for (let k = 0; k < orbitCount; k++) {
+                const ang = (k / orbitCount) * Math.PI * 2 + time / 400;
+                g.fillStyle(auraColor, 0.7);
+                g.fillCircle(bx + Math.cos(ang) * 22, by - 18 + Math.sin(ang) * 10, pulseR);
+            }
         }
     }
 
@@ -1415,175 +1413,307 @@ export default class GameScene extends Phaser.Scene {
 
         switch (type) {
             case 'swordSlash': {
-                const r = 60 + p * 20;
-                g.lineStyle(4 * inv, 0xffffff, 0.9 * inv);
-                g.beginPath();
-                g.arc(x, y, r, dir === 1 ? -0.4 : Math.PI + 0.4, dir === 1 ? 0.8 : Math.PI - 0.8, dir !== 1);
-                g.strokePath();
-                g.lineStyle(2 * inv, 0xffcc66, 0.7 * inv);
-                g.beginPath();
-                g.arc(x, y, r - 8, dir === 1 ? -0.3 : Math.PI + 0.3, dir === 1 ? 0.7 : Math.PI - 0.7, dir !== 1);
-                g.strokePath();
+                const r = 55 + p * 30;
+                const startA = dir === 1 ? -0.5 : Math.PI + 0.5;
+                const endA   = dir === 1 ?  0.9 : Math.PI - 0.9;
+                g.lineStyle(7 * inv, 0xffffff, 0.8 * inv);
+                g.beginPath(); g.arc(x, y, r,      startA, endA, dir !== 1); g.strokePath();
+                g.lineStyle(4 * inv, 0xffdd88, 0.7 * inv);
+                g.beginPath(); g.arc(x, y, r - 10, startA, endA, dir !== 1); g.strokePath();
+                g.lineStyle(2 * inv, 0xaaddff, 0.5 * inv);
+                g.beginPath(); g.arc(x, y, r + 12, startA, endA, dir !== 1); g.strokePath();
+                const ex = x + dir * (r * 0.8);
+                const ey = y - r * 0.3;
+                g.fillStyle(0xffffff, inv * 0.8);
+                g.fillCircle(ex, ey, 5 * inv);
                 break;
             }
             case 'daggerSlash': {
-                const r2 = 45 + p * 15;
-                g.lineStyle(3 * inv, 0xaa44ff, 0.9 * inv);
-                for (let k = 0; k < 3; k++) {
-                    g.beginPath();
-                    g.arc(x, y, r2 + k * 5, dir === 1 ? -0.2 + k * 0.1 : Math.PI + 0.2 - k * 0.1,
-                        dir === 1 ? 0.5 + k * 0.1 : Math.PI - 0.5 - k * 0.1, dir !== 1);
-                    g.strokePath();
-                }
+                const r2 = 40 + p * 20;
+                const offsets = [[-1, -1], [1, 1], [-1, 1], [1, -1]];
+                offsets.forEach(([ox, oy], idx) => {
+                    const kp = Math.max(0, inv - idx * 0.1);
+                    g.lineStyle(4 * kp, idx < 2 ? 0xcc66ff : 0xaa44dd, kp);
+                    g.lineBetween(x + dir * ox * 5, y + oy * 5,
+                                  x + dir * ox * r2, y + oy * r2 * 0.7);
+                });
+                g.fillStyle(0xeeddff, inv * 0.6);
+                g.fillCircle(x, y, 8 * inv);
+                break;
+            }
+            case 'arrowTrail': {
+                const al = 30 + p * 25;
+                g.lineStyle(3 * inv, 0xffcc44, inv);
+                g.lineBetween(x - dir * 10, y, x + dir * al, y);
+                g.fillStyle(0xffee88, inv);
+                g.fillTriangle(x + dir * al, y, x + dir * (al - 8), y - 4, x + dir * (al - 8), y + 4);
+                g.lineStyle(1, 0xffaa00, inv * 0.5);
+                g.lineBetween(x - dir * 20, y - 3, x + dir * al, y - 3);
+                g.lineBetween(x - dir * 15, y + 3, x + dir * al, y + 3);
                 break;
             }
             case 'powerStrike': {
-                const sz = (40 + p * 60) * inv;
-                g.fillStyle(0xffaa00, 0.5 * inv);
-                g.fillCircle(x + dir * 30, y, sz / 2);
+                const sz = 40 + p * 80;
+                const tx = x + dir * 35;
+                g.fillStyle(0xffaa00, 0.4 * inv);
+                g.fillCircle(tx, y, sz * 0.55);
                 g.lineStyle(5 * inv, 0xffff00, inv);
-                for (let k = 0; k < 5; k++) {
-                    const ang = (k / 5) * Math.PI * 2;
-                    const r3 = sz / 2;
-                    g.lineBetween(x + dir * 30, y, x + dir * 30 + Math.cos(ang) * r3, y + Math.sin(ang) * r3);
+                for (let k = 0; k < 8; k++) {
+                    const ang = (k / 8) * Math.PI * 2;
+                    const rl = sz * (0.4 + (k % 2) * 0.25);
+                    g.lineBetween(tx, y, tx + Math.cos(ang) * rl, y + Math.sin(ang) * rl);
                 }
+                g.lineStyle(3 * inv, 0xff8800, 0.7 * inv);
+                g.strokeCircle(tx, y, sz * 0.7);
+                g.fillStyle(0xffffff, 0.9 * inv * inv);
+                g.fillCircle(tx, y, 12 * inv);
                 break;
             }
             case 'slashBlast': {
-                const r4 = p * 150;
-                g.lineStyle(6 * inv, 0x6688ff, 0.8 * inv);
+                const r4 = p * 160;
+                g.lineStyle(8 * inv, 0x4466ff, 0.75 * inv);
                 g.strokeCircle(x, y, r4);
-                g.lineStyle(3 * inv, 0xaabbff, 0.5 * inv);
-                g.strokeCircle(x, y, r4 * 0.7);
+                g.lineStyle(4 * inv, 0x88aaff, 0.5 * inv);
+                g.strokeCircle(x, y, r4 * 0.72);
+                g.lineStyle(2 * inv, 0xaaccff, 0.35 * inv);
+                g.strokeCircle(x, y, r4 * 0.45);
+                if (p < 0.4) {
+                    const cf = 1 - p / 0.4;
+                    g.fillStyle(0x6688ff, cf * 0.55);
+                    g.fillCircle(x, y, r4 * 0.3);
+                    g.fillStyle(0xffffff, cf * 0.4);
+                    g.fillCircle(x, y, r4 * 0.1);
+                }
+                for (let k = 0; k < 6; k++) {
+                    const sa = (k / 6) * Math.PI * 2 + p * 2;
+                    const sl = r4 * 0.85;
+                    g.fillStyle(0x8899ff, inv * 0.7);
+                    g.fillCircle(x + Math.cos(sa) * sl, y + Math.sin(sa) * sl * 0.6, 4 * inv);
+                }
                 break;
             }
             case 'doubleStab':
             case 'quadStab': {
-                for (let k = 0; k < (type === 'quadStab' ? 4 : 3); k++) {
-                    const kp = Math.max(0, p - k * 0.2);
-                    const kl = 40 + kp * 20;
-                    g.lineStyle(3 * (1 - kp), 0xaa44ff, (1 - kp) * 0.9);
-                    g.lineBetween(x, y + k * 8 - 12, x + dir * kl, y + k * 8 - 12);
+                const count = type === 'quadStab' ? 4 : 3;
+                for (let k = 0; k < count; k++) {
+                    const kp = Math.max(0, p - k * 0.18);
+                    const kl = 45 + kp * 25;
+                    const ki = 1 - kp;
+                    g.lineStyle(4 * ki, 0xcc66ff, ki * 0.85);
+                    g.lineBetween(x, y + k * 9 - 13, x + dir * kl, y + k * 9 - 13);
+                    g.lineStyle(1, 0x9933cc, ki * 0.4);
+                    g.lineBetween(x, y + k * 9 - 13, x + dir * kl, y + k * 9 - 13);
                 }
+                g.fillStyle(0xeeaaff, inv * 0.7);
+                g.fillCircle(x + dir * (45 + p * 25), y - 4, 5 * inv);
                 break;
             }
             case 'assassinate':
             case 'stealthBackstab': {
-                g.fillStyle(0x440066, 0.4 * inv);
-                g.fillCircle(x, y, 50 * p + 20);
+                g.fillStyle(0x220033, 0.55 * inv);
+                g.fillCircle(x, y, 60 * p + 15);
+                const boltCount = type === 'stealthBackstab' ? 5 : 3;
+                for (let k = 0; k < boltCount; k++) {
+                    const ba = (k / boltCount) * Math.PI * 2 + p * 3;
+                    const bl = 45 + p * 35;
+                    g.lineStyle(2 * inv, 0xff44ff, inv * 0.85);
+                    g.lineBetween(x, y, x + Math.cos(ba) * bl, y + Math.sin(ba) * bl * 0.7);
+                }
                 g.lineStyle(4 * inv, 0xff00ff, inv);
-                g.lineBetween(x, y - 40, x + dir * 80 * p, y + 20);
+                g.lineBetween(x, y - 45, x + dir * 85 * p, y + 18);
+                g.fillStyle(0xaa00cc, inv * 0.45);
+                g.fillCircle(x, y, 20 * inv);
                 break;
             }
-            case 'doubleShot':
-            case 'arrowTrail': {
-                g.lineStyle(3 * inv, 0xffcc44, inv);
-                g.lineBetween(x, y, x + dir * (40 + p * 20), y);
-                break;
-            }
-            case 'arrowRain': {
-                for (let k = 0; k < 12; k++) {
-                    const ax = e.x - 200 + k * 34;
-                    const ay = 50 + p * 400;
-                    g.lineStyle(2, 0xffcc44, (1 - p) * 0.8);
-                    g.lineBetween(ax, ay - 30, ax, ay);
-                    g.fillStyle(0xffcc44, (1 - p) * 0.8);
-                    g.fillTriangle(ax - 4, ay, ax + 4, ay, ax, ay + 8);
+            case 'doubleShot': {
+                for (let lane = -1; lane <= 1; lane += 2) {
+                    const al2 = 30 + p * 28;
+                    const ly  = y + lane * 7;
+                    g.lineStyle(3 * inv, 0xffcc44, inv);
+                    g.lineBetween(x - dir * 8, ly, x + dir * al2, ly);
+                    g.fillStyle(0xffee88, inv);
+                    g.fillTriangle(x + dir * al2, ly,
+                                   x + dir * (al2 - 8), ly - 4,
+                                   x + dir * (al2 - 8), ly + 4);
                 }
                 break;
             }
+            case 'arrowRain': {
+                for (let k = 0; k < 14; k++) {
+                    const ax = e.x - 220 + k * 34;
+                    const ay = 40 + p * 420;
+                    const a  = (1 - p) * 0.9;
+                    g.lineStyle(2, 0xffcc44, a);
+                    g.lineBetween(ax, ay - 34, ax, ay);
+                    g.fillStyle(0xffee88, a);
+                    g.fillTriangle(ax - 4, ay, ax + 4, ay, ax, ay + 10);
+                    g.fillStyle(0xff8800, a * 0.7);
+                    g.fillTriangle(ax - 3, ay - 30, ax, ay - 22, ax + 3, ay - 30);
+                }
+                break;
+            }
+            case 'tripleShot': {
+                const angles = [-0.25, 0, 0.25];
+                angles.forEach(ang => {
+                    const al3 = 30 + p * 30;
+                    const ex2 = x + dir * Math.cos(ang) * al3;
+                    const ey2 = y + Math.sin(ang) * al3;
+                    g.lineStyle(3 * inv, 0xffcc44, inv);
+                    g.lineBetween(x, y, ex2, ey2);
+                    g.fillStyle(0xffee88, inv);
+                    const nx = (ex2 - x) / al3;
+                    const ny = (ey2 - y) / al3;
+                    g.fillTriangle(ex2, ey2, ex2 - nx * 8 - ny * 4, ey2 - ny * 8 + nx * 4,
+                                              ex2 - nx * 8 + ny * 4, ey2 - ny * 8 - nx * 4);
+                });
+                break;
+            }
             case 'explosion': {
-                const er = 30 + p * 70;
-                g.fillStyle(0xff6600, (1 - p) * 0.7);
+                const er = 25 + p * 90;
+                g.fillStyle(0xff4400, (1 - p) * 0.65);
                 g.fillCircle(x, y, er);
-                g.fillStyle(0xffff00, (1 - p) * 0.5);
-                g.fillCircle(x, y, er * 0.6);
+                g.fillStyle(0xff9900, (1 - p) * 0.55);
+                g.fillCircle(x, y, er * 0.65);
+                g.fillStyle(0xffff88, (1 - p) * 0.45);
+                g.fillCircle(x, y, er * 0.35);
+                g.lineStyle(3 * inv, 0xff8800, 0.6 * inv);
+                g.strokeCircle(x, y, er * 1.2);
                 break;
             }
             case 'rageActivate': {
-                for (let k = 0; k < 8; k++) {
-                    const ang = (k / 8) * Math.PI * 2 + p * Math.PI;
-                    const r5 = 30 + p * 40;
-                    g.lineStyle(3 * inv, 0xff4400, inv);
-                    g.lineBetween(x, y, x + Math.cos(ang) * r5, y + Math.sin(ang) * r5);
+                const rr = 25 + p * 50;
+                g.fillStyle(0xff2200, 0.35 * inv);
+                g.fillCircle(x, y, rr * 1.1);
+                for (let k = 0; k < 10; k++) {
+                    const ang = (k / 10) * Math.PI * 2 + p * Math.PI;
+                    g.lineStyle(4 * inv, 0xff4400, inv);
+                    g.lineBetween(x, y, x + Math.cos(ang) * rr, y + Math.sin(ang) * rr * 0.7);
+                    g.fillStyle(0xffaa00, inv * 0.8);
+                    g.fillCircle(x + Math.cos(ang) * rr * 0.85, y + Math.sin(ang) * rr * 0.6, 3);
+                }
+                for (let k = 0; k < 5; k++) {
+                    const fx = x - 20 + k * 10;
+                    const fy = y - 10 - p * 40 - k * 4;
+                    g.fillStyle(0xff6600, inv * 0.6);
+                    g.fillTriangle(fx - 4, fy + 16, fx, fy, fx + 4, fy + 16);
                 }
                 break;
             }
             case 'hasteActivate': {
+                for (let k = 0; k < 8; k++) {
+                    const hy = y - 20 + k * 8;
+                    const hl = 20 + k * 3;
+                    g.lineStyle(3 * inv, 0xaa44ff, inv * (1 - k * 0.1));
+                    g.lineBetween(x - hl - p * 20, hy, x + hl + p * 10, hy);
+                }
                 for (let k = 0; k < 6; k++) {
-                    const hy = y - k * 10 * p;
-                    g.lineStyle(2 * inv, 0xaa44ff, inv);
-                    g.lineBetween(x - 15, hy, x + 15, hy);
+                    const sang = (k / 6) * Math.PI * 2;
+                    const sl = 25 + p * 20;
+                    g.lineStyle(2 * inv, 0xcc88ff, inv * 0.6);
+                    g.lineBetween(x, y, x + Math.cos(sang) * sl, y + Math.sin(sang) * sl * 0.5);
                 }
                 break;
             }
             case 'soulActivate': {
-                const sr = 35 + p * 25;
-                g.lineStyle(3 * inv, 0x44ff88, inv * 0.8);
-                for (let k = 0; k < 5; k++) {
-                    const sang = (k / 5) * Math.PI * 2 + p * Math.PI;
-                    g.lineBetween(x, y, x + Math.cos(sang) * sr, y + Math.sin(sang) * sr);
+                for (let k = 0; k < 8; k++) {
+                    const sang = (k / 8) * Math.PI * 2 + p * Math.PI * 2;
+                    const sr2 = 20 + p * 30;
+                    const salpha = (1 - k / 8) * inv * 0.7;
+                    g.fillStyle(0x44ff88, salpha);
+                    g.fillCircle(x + Math.cos(sang) * sr2, y + Math.sin(sang) * sr2 * 0.5, 4);
                 }
+                g.lineStyle(2 * inv, 0x44ffaa, inv * 0.5);
+                g.strokeCircle(x, y, 30 + p * 25);
                 break;
             }
             case 'holyLightActivate': {
-                g.fillStyle(0xffff88, (1 - p) * 0.5);
-                g.fillCircle(x, y, 50 + p * 30);
-                g.lineStyle(4 * inv, 0xffffaa, inv);
-                g.strokeCircle(x, y, 35 + p * 20);
-                break;
-            }
-            case 'levelUp': {
-                const lr = p * 60;
-                g.lineStyle(5 * inv, 0xffff00, inv);
-                g.strokeCircle(x, y, lr);
-                g.fillStyle(0xffff00, inv * 0.3);
-                g.fillCircle(x, y - 50 - p * 40, 20 * inv);
-                break;
-            }
-            case 'promotion': {
-                for (let k = 0; k < 12; k++) {
-                    const pang = (k / 12) * Math.PI * 2 + p * 2;
-                    const pr2 = 40 + p * 60;
-                    g.lineStyle(4 * inv, 0xffffff, inv);
-                    g.lineBetween(x, y, x + Math.cos(pang) * pr2, y + Math.sin(pang) * pr2);
+                const hr = 30 + p * 40;
+                g.fillStyle(0xffff88, (1 - p) * 0.45);
+                g.fillCircle(x, y, hr * 1.2);
+                g.lineStyle(5 * inv, 0xffffaa, inv);
+                g.strokeCircle(x, y, hr * 0.7);
+                for (let k = 0; k < 4; k++) {
+                    const ca = (k / 4) * Math.PI * 2;
+                    g.lineStyle(4 * inv, 0xffffff, inv * 0.9);
+                    g.lineBetween(x, y, x + Math.cos(ca) * hr, y + Math.sin(ca) * hr);
+                }
+                for (let k = 0; k < 6; k++) {
+                    const ka = (k / 6) * Math.PI * 2 + p;
+                    g.fillStyle(0xffffff, inv * 0.7);
+                    g.fillCircle(x + Math.cos(ka) * hr * 0.7, y + Math.sin(ka) * hr * 0.7, 3);
                 }
                 break;
             }
+            case 'levelUp': {
+                const lr = p * 70;
+                g.lineStyle(6 * inv, 0xffff00, inv);
+                g.strokeCircle(x, y, lr);
+                g.lineStyle(3 * inv, 0xffffff, inv * 0.6);
+                g.strokeCircle(x, y, lr * 0.65);
+                g.fillStyle(0xffff00, inv * 0.35);
+                g.fillCircle(x, y - 55 - p * 45, 22 * inv);
+                for (let k = 0; k < 8; k++) {
+                    const la = (k / 8) * Math.PI * 2;
+                    g.lineStyle(3 * inv, 0xffff44, inv * 0.7);
+                    g.lineBetween(x, y, x + Math.cos(la) * lr * 0.7, y + Math.sin(la) * lr * 0.7);
+                }
+                break;
+            }
+            case 'promotion': {
+                for (let k = 0; k < 16; k++) {
+                    const pang = (k / 16) * Math.PI * 2 + p * 2;
+                    const pr2 = 45 + p * 70;
+                    const pk  = k % 2 === 0 ? 1 : 0.6;
+                    g.lineStyle(4 * inv * pk, 0xffffff, inv * pk);
+                    g.lineBetween(x, y, x + Math.cos(pang) * pr2 * pk, y + Math.sin(pang) * pr2 * pk);
+                }
+                g.lineStyle(3 * inv, 0xffcc00, inv * 0.7);
+                g.strokeCircle(x, y, 50 + p * 60);
+                break;
+            }
             case 'critBurst': {
-                const cr = p * 40;
+                const cr = p * 45;
                 g.lineStyle(4 * inv, 0xffff00, inv);
                 for (let k = 0; k < 8; k++) {
                     const ca = (k / 8) * Math.PI * 2;
                     g.lineBetween(x, y, x + Math.cos(ca) * cr, y + Math.sin(ca) * cr);
                 }
+                g.fillStyle(0xffffff, inv * 0.5);
+                g.fillCircle(x, y, 10 * inv);
                 break;
             }
             case 'shieldCounter': {
-                const bw2 = 50 * inv, bh2 = 60 * inv;
-                g.lineStyle(4 * inv, 0x8888ff, inv);
+                const bw2 = 55 * inv, bh2 = 65 * inv;
+                g.lineStyle(5 * inv, 0x8888ff, inv);
                 g.strokeRect(x - bw2 / 2, y - bh2 / 2, bw2, bh2);
+                g.fillStyle(0x4444ff, 0.25 * inv);
+                g.fillRect(x - bw2 / 2, y - bh2 / 2, bw2, bh2);
                 break;
             }
             case 'stealthActivate': {
-                g.fillStyle(0x330044, 0.5 * inv);
-                g.fillCircle(x, y, 40 * p + 10);
+                g.fillStyle(0x330044, 0.55 * inv);
+                g.fillCircle(x, y, 45 * p + 10);
+                g.lineStyle(2 * inv, 0xaa00cc, inv * 0.6);
+                g.strokeCircle(x, y, 40 * p + 8);
                 break;
             }
             case 'monsterDie': {
-                for (let k = 0; k < 6; k++) {
-                    const da = (k / 6) * Math.PI * 2;
-                    const dr = p * 50;
-                    g.lineStyle(3 * inv, 0xffaa00, inv);
-                    g.lineBetween(x, y, x + Math.cos(da) * dr, y + Math.sin(da) * dr);
+                const dr = p * 60;
+                for (let k = 0; k < 8; k++) {
+                    const da = (k / 8) * Math.PI * 2;
+                    const dl = dr * (0.7 + (k % 2) * 0.3);
+                    g.lineStyle(4 * inv, 0xffaa00, inv);
+                    g.lineBetween(x, y, x + Math.cos(da) * dl, y + Math.sin(da) * dl);
+                    g.fillStyle(0xff6600, inv * 0.7);
+                    g.fillCircle(x + Math.cos(da) * dl, y + Math.sin(da) * dl, 4 * inv);
                 }
+                g.fillStyle(0xffff00, inv * 0.5);
+                g.fillCircle(x, y, 20 * inv);
                 break;
             }
         }
     }
 
-    // ??????????????????????????????????????????????????????????
-    //  ?꾨줈?앺????뚮뜑留?    // ??????????????????????????????????????????????????????????
     drawProjectiles(g) {
         if (!this.projectiles) return;
         for (const proj of this.projectiles) {
