@@ -486,7 +486,7 @@ setLevel(9)             // 레벨 9로 설정
 
 ---
 
-### Phase 7 — 스프라이트 에셋 도입 + DOM UI 마이그레이션
+### Phase 7 — 스프라이트 에셋 도입 + DOM UI 마이그레이션 (Part B ✅ 완료 2026-02-14)
 
 목표: fillRect/fillCircle 도형 렌더링 → 픽셀아트 스프라이트 교체 (Part A),
 Phaser Graphics UI → HTML/CSS DOM UI 교체 (Part B).
@@ -526,34 +526,34 @@ Phaser Graphics UI → HTML/CSS DOM UI 교체 (Part B).
 - [ ] GameScene.js — `updatePlayerSprite()` 상태별 애니메이션
 - [ ] GameScene.js — `spawnMonsterSprite()` + `updateMonsterSprite()`
 
-#### Part B: DOM UI 마이그레이션
+#### Part B: DOM UI 마이그레이션 ✅ **완료** (2026-02-14)
 
 Phaser 씬(HUDScene/JobSelectScene/GameOverScene) → HTML/CSS DOM으로 교체.
 
-**phaser.html 구조:**
+**구현된 phaser.html 구조:**
 ```
-body
-├── #game-container  (Phaser 캔버스)
+body > #game-wrapper (position:relative, 1000×600)
+├── #game-container  (Phaser 캔버스, parent로 마운트)
 └── #ui-root  (position:absolute, z-index:10, pointer-events:none)
-    ├── #job-select-screen  (직업 선택 카드 3장)
-    ├── #hud  (HP/MP/EXP 바, 스킬슬롯, 버프바, 정보패널)
-    └── #game-over-screen  (레벨/처치수 + 재시작/직업변경 버튼)
+    ├── #job-select-screen  (직업 카드 3장, CSS 변수 --jc 기반 색상, JS 동적 생성)
+    ├── #hud  (HP/MP/EXP 바, 스킬슬롯+쿨다운오버레이, 버프바, 콤보, 메소, 채팅로그, 일시정지)
+    └── #game-over-screen  (스탯 표시 + 재시작/직업변경 버튼)
 ```
 
 **이벤트 통신 방식:**
-- `GameScene.updateHUD()` → `window.dispatchEvent(new CustomEvent('gameHudUpdate', { detail: {...} }))`
-- 게임오버 → `window.dispatchEvent(new CustomEvent('gameOver', { detail: {...} }))`
-- 직업 선택 → DOM 버튼 클릭 → `window.dispatchEvent(new CustomEvent('jobSelected', { detail: {job} }))`
+- `GameScene.updateHUD()` → `gameHudUpdate` CustomEvent (detail에 `skills[]` 포함)
+- 게임오버 → `gameOver` CustomEvent
+- DOM 버튼 → `jobSelected` / `gameRestart` / `gameChangeJob` CustomEvent
+- BootScene이 라우터: jobSelected→GameScene launch, gameRestart→재시작, gameChangeJob→직업선택화면
 
-**main.js 변경:** 씬 목록에서 `JobSelectScene`, `HUDScene`, `GameOverScene` 제거 → `[BootScene, GameScene]`
+**씬 구조:** `[BootScene, GameScene]` (3개 씬 삭제)
 
-- [ ] phaser.html — DOM 마크업(#job-select-screen, #hud, #game-over-screen) + CSS 추가
-- [ ] GameScene.js — `updateHUD()` CustomEvent 방식으로 교체
-- [ ] GameScene.js — 직업 선택/게임오버 CustomEvent 발행
-- [ ] phaser.html — DOM 이벤트 수신 스크립트 추가
-- [ ] main.js — 씬 목록 정리 (HUDScene/JobSelectScene/GameOverScene 제거)
-- [ ] JobSelectScene.js, HUDScene.js, GameOverScene.js 파일 삭제
-
-**구현 순서:** Part B 먼저 (게임 로직 변경 없이 UI 교체) → Part A (스프라이트 교체)
+- [x] phaser.html — DOM 마크업(#job-select-screen, #hud, #game-over-screen) + CSS 추가
+- [x] GameScene.js — `updateHUD()` CustomEvent 방식으로 교체 (skills[] 포함)
+- [x] GameScene.js — 게임오버 CustomEvent 발행, HUDScene launch 제거
+- [x] phaser.html — DOM 이벤트 수신 스크립트 추가
+- [x] main.js — 씬 목록 정리, `parent: 'game-container'` 추가
+- [x] JobSelectScene.js, HUDScene.js, GameOverScene.js 파일 삭제
+- [x] BootScene.js — DOM 이벤트 라우터로 재작성
 
 의존: Phase 6 완료 후
