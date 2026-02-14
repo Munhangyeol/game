@@ -18,7 +18,7 @@ export const JOBS = {
             { level: 30, hp: 200, mp: 40 },  // 재변직 (다크나이트)
             { level: 70, hp: 400, mp: 80 }   // 최종변직 (히어로)
         ],
-        basicAttack: { damage: 1.4, range: 75, type: 'sword', cooldown: 28, animDuration: 200 },
+        basicAttack: { damage: 1.4, range: 75, type: 'sword', cooldown: 28, animDuration: 390 },
         tiers: [
             {
                 name: '전사',
@@ -76,7 +76,7 @@ export const JOBS = {
             { level: 30, hp: 150, mp: 60 },  // 재변직 (어쌔신)
             { level: 70, hp: 300, mp: 120 }  // 최종변직 (나이트로드)
         ],
-        basicAttack: { damage: 0.4, range: 50, type: 'dagger', hits: 2, cooldown: 10, animDuration: 60 },
+        basicAttack: { damage: 0.4, range: 50, type: 'dagger', hits: 2, cooldown: 10, animDuration: 185 },
         tiers: [
             {
                 name: '도적',
@@ -134,7 +134,7 @@ export const JOBS = {
             { level: 30, hp: 130, mp: 50 },  // 재변직 (레인저)
             { level: 70, hp: 250, mp: 100 }  // 최종변직 (보우마스터)
         ],
-        basicAttack: { damage: 1.0, type: 'arrow', cooldown: 18, animDuration: 100 },
+        basicAttack: { damage: 1.0, type: 'arrow', cooldown: 18, animDuration: 280 },
         tiers: [
             {
                 name: '궁수',

@@ -526,3 +526,333 @@ Phase 6+: 장기 확장 (3개월+)
 ---
 
 **Note**: Phase 2.5부터 시작하여 바닐라 Canvas 버전의 완성도를 높인 후, Phaser 마이그레이션을 진행하는 것을 권장합니다.
+
+---
+
+## Phase 7 — 캐릭터 퀄리티 향상 (에셋 없이 코드만)
+
+### 목표
+외부 에셋 없이 애니메이션 타이밍·물리·이펙트 코드만으로 캐릭터의 체감 퀄리티를 AAA급으로 끌어올린다.
+
+---
+
+### 1. 애니메이션 타이밍 개선 (Attack Windup / Hit / Recovery)
+
+**현재 문제**
+공격 애니메이션이 4프레임 고정 frameRate(16fps)로 균등 재생 → 타격감 없음.
+
+**구현 내용**
+- Attack 애니메이션을 3구간으로 분리
+  - Windup (Frame 0-1): 30% 시간, 느리게 (frameRate ↓)
+  - Hit (Frame 2): 10% 시간, 순간 (frameRate ↑↑)
+  - Recovery (Frame 3): 60% 시간, 서서히 (frameRate ↓)
+- HitStop: Hit frame 도달 시 `this.time.delayedCall(60, ...)` 로 60ms 프레임 고정
+- 구현: `useSkill()`·`basicAttack()` 호출 시 `this.anims.msPerFrame` 동적 변경
+
+**구현 파일**
+- `src/phaser/scenes/GameScene.js`: `updatePlayerSprite()`, `basicAttack()`, `useSkill()`
+- `src/phaser/scenes/BootScene.js`: `createSpriteTexturesAndAnims()` frameRate 세분화
+
+**임팩트**: ⭐⭐⭐ (타격감 핵심, 가장 효과 큰 단일 변경)
+
+---
+
+### 2. Secondary Motion (망토·머리카락 후행 움직임)
+
+**현재 문제**
+망토·머리카락이 캐릭터 스프라이트 텍스처에 베이크되어 있어 독립 움직임 없음.
+
+**구현 내용**
+- `drawAll()` 내 drawLayer에 캐릭터 위치 기반 실시간 오버레이 추가
+- 물리 변수: `capeAngle`, `hairAngle` — 이전 프레임 각도에서 목표값으로 선형 보간(lerp)
+  - 이동 중: 반대 방향으로 최대 15° 기울기
+  - 멈출 때: 0°로 서서히 복귀 (감쇠 계수 0.85)
+  - 공격 시: 순간 20° 후방 스냅 → 복귀
+- 망토: `g.fillTriangle()` 2~3개 삼각형 조합으로 물결 표현
+- 머리카락: 2~3개 선분 각도 변환으로 흩날림 표현
+
+**구현 파일**
+- `src/phaser/scenes/GameScene.js`: `drawPlayerOverlays()` — capeAngle/hairAngle 계산 및 그리기
+
+**임팩트**: ⭐⭐⭐ (정지 중에도 살아있는 느낌, 즉각적 퀄 상승)
+
+---
+
+### 3. Idle Animation 강화 (숨쉬기 + 장비 흔들림)
+
+**현재 문제**
+4프레임 1px 세로 bob만 있음 — 너무 단조로움.
+
+**구현 내용**
+- 숨쉬기: `sin(time * 0.0015) * 1.5` — 1.5px 스케일 기반 세로 움직임 (현재 1px보다 자연스러운 주기)
+- 무기 미세 흔들림: 대기 중 무기에 `sin(time * 0.002) * 2°` 회전 추가
+- 눈 깜빡임: 3~6초 간격으로 0.1초간 눈 가리기 (Graphics 오버레이로 눈 위치에 직사각형)
+- 발 미세 무게이동: 좌우 발에 번갈아 0.5px 높이 차이
+
+**구현 파일**
+- `src/phaser/scenes/BootScene.js`: `drawJobFrame()` — idleBob 로직 확장
+- `src/phaser/scenes/GameScene.js`: `drawPlayerOverlays()` — time 기반 무기 흔들림·눈 깜빡임
+
+**임팩트**: ⭐⭐ (정지 시 생동감, 완성도 향상)
+
+---
+
+### 4. Hit Reaction 강화 (플레이어)
+
+**현재 문제**
+플레이어가 피격 시 알파 깜빡임만 있음 — 시각적 임팩트 없음.
+
+**구현 내용**
+- 피격 순간 즉각 White Flash: `playerSprite.setTint(0xffffff)` → 80ms 후 클리어
+- 피격 방향 반대로 짧은 노크백: 피격 시 `ps.vx += direction * -300` (80ms 감쇠)
+- 피격 Squash: `playerSprite.setScale(1.2, 0.8)` → 100ms 내 원복
+- 화면 흔들림: 이미 존재(`cameras.main.shake(150, 0.012)`) — 유지
+- 피격 파티클: 혈흔 대신 흰색/붉은색 광채 파티클 5개 방출 (기존 `addBurstParticles` 활용)
+
+**구현 파일**
+- `src/phaser/scenes/GameScene.js`: `takeDamage()` 또는 피격 처리 구간 (line ~677)
+
+**임팩트**: ⭐⭐⭐ (피격 피드백 없으면 싸구려 — 필수 수정)
+
+---
+
+### 5. Camera Interaction 강화 (Zoom + Slow-Mo)
+
+**현재 문제**
+카메라 Shake만 있고 Zoom·Slow-Motion 없음.
+
+**구현 내용**
+- **스킬 시전 시 Punch-In Zoom**: `cameras.main.zoomTo(1.05, 80)` → `zoomTo(1.0, 200)`
+  - 스킬 타입별 zoom 강도 차등 (일반 1.05, 궁극기 1.1)
+- **히트스톱 연동 Slow-Mo**: 강공격 HitStop 구간에 `this.physics.world.timeScale = 0.3` 60ms 적용
+- **레벨업/전직 시 Zoom Burst**: `zoomTo(1.15, 150)` → `zoomTo(1.0, 500)` 천천히 복귀
+- **보스 처치 Slow-Mo**: 처치 판정 후 300ms간 timeScale 0.2 → 원복
+
+**구현 파일**
+- `src/phaser/scenes/GameScene.js`: `useSkill()`, `dealDamage()`, `checkLevelUp()`, `handlePromotion()`
+
+**임팩트**: ⭐⭐⭐ (영화적 연출, 고퀄 RPG 필수 요소)
+
+---
+
+### 6. Lighting / Glow 강화 (무기·캐릭터 Rim Light)
+
+**현재 문제**
+Glow가 스킬 이펙트에만 있고, 기본공격 중 무기·캐릭터 자체 발광 없음.
+
+**구현 내용**
+- **무기 Glow (기본공격 직전 Windup)**: fxLayer (ADD 블렌드)에 무기 위치에 소형 glow 원 그리기
+  - 전사 검: 주황색 `0xff8800` 반경 8px glow
+  - 도적 단검: 보라색 `0xaa00ff` 반경 5px × 2
+  - 궁수 화살: 노란색 `0xffff00` 화살 끝에 6px glow
+- **캐릭터 Rim Light**: 피격 직후 혹은 버프 중 캐릭터 테두리 얇은 glow 오버레이
+  - 래지(Rage): 붉은 테두리 `0xff2200` 펄스
+  - 헤이스트(Haste): 보라 테두리 `0x9900ff` 펄스
+  - 버프 없을 때: 기본 흰색 미세 glow (alpha 0.1~0.2 사인파)
+- **레벨업 Burst**: 레벨업 시 캐릭터 주변에 방사형 흰색 glow 원 확장 (0 → 80px, alpha 1→0)
+
+**구현 파일**
+- `src/phaser/scenes/GameScene.js`: `drawPlayerOverlays()`, `basicAttack()`, `useSkill()`
+- `src/phaser/scenes/BootScene.js`: fxLayer 관련 텍스처 없음, 순수 Graphics로 구현
+
+**임팩트**: ⭐⭐ (존재감·시각적 완성도, 직업별 개성 강조)
+
+---
+
+### Phase 7 구현 우선순위
+
+| 우선순위 | 항목 | 임팩트 | 난이도 |
+|---------|------|--------|--------|
+| 1 | 애니메이션 타이밍 (HitStop 포함) | ⭐⭐⭐ | ⭐⭐ |
+| 2 | Hit Reaction 강화 (플레이어) | ⭐⭐⭐ | ⭐ |
+| 3 | Camera Zoom + Slow-Mo | ⭐⭐⭐ | ⭐ |
+| 4 | Secondary Motion | ⭐⭐⭐ | ⭐⭐ |
+| 5 | Lighting / Glow 강화 | ⭐⭐ | ⭐⭐ |
+| 6 | Idle Animation 강화 | ⭐⭐ | ⭐ |
+
+### 핵심 구현 파일 요약
+
+| 파일 | 수정 항목 |
+|------|-----------|
+| `src/phaser/scenes/GameScene.js` | 모든 항목 (타이밍·리액션·카메라·glow) |
+| `src/phaser/scenes/BootScene.js` | 애니메이션 frameRate 세분화, drawJobFrame 확장 |
+
+---
+
+## Phase 8 — 배경 퀄리티 향상 (Parallax + Atmosphere + Color Grading)
+
+### 현재 구현 상태
+
+**이미 구현된 것**
+- `ParallaxBackgroundSystem.js`: 4개 레이어 (sky / mountains / midObjects / frontGrass), 2개 테마
+- `AmbienceFxSystem.js`: 안개(Fog ellipse), 빛줄기(Light Shaft triangle), 먼지(Dust ADD blend 파티클)
+
+**부족한 것 (유저 요청 기반)**
+- Near Objects 레이어 누락 (현재 4레이어 → 목표 5레이어)
+- 구름 레이어 없음 (Micro Motion)
+- Color Grading / Tone 통일 없음
+- 나무 수관(canopy) 흔들림 없음 (잔디만 흔들림)
+- Depth Blur 시뮬레이션 없음
+- 테마 2개뿐 (dawn / cave 등 추가 필요)
+
+---
+
+### 1. 5레이어 Parallax — Near Objects 추가 ⭐⭐⭐
+
+**현재**: sky / mountains / midObjects / frontGrass (4레이어)
+**목표**: sky / farMountains / clouds / midObjects / nearObjects / foreground (6레이어)
+
+**추가 레이어: nearObjects (depth -4, scrollRate 0.55)**
+- 더 크고 대비 높은 나무 실루엣 (캐릭터 바로 뒤)
+- 바위·덤불·버섯 실루엣, 플랫폼 주변 장식
+- scrollRate: 0.55 (midObjects 0.38보다 빠름, foreground 0.65보다 느림)
+
+**거리별 시각 처리 원칙**
+
+| 레이어 | Alpha | 느낌 | Scroll Rate |
+|--------|-------|------|-------------|
+| sky | 1.0 | 저채도·저대비 | 0.08 |
+| farMountains | 0.75 | 저채도·저대비 | 0.20 |
+| clouds | 0.15~0.25 | 반투명 | 0.15 |
+| midObjects | 0.90 | 중간 | 0.38 |
+| nearObjects | 1.0 | 고채도·고대비 | 0.55 |
+| foreground | 1.0 | 고채도 | 0.65 |
+
+**구현 파일**: `src/phaser/rendering/ParallaxBackgroundSystem.js`
+- `this.layers.nearObjects` Graphics 추가 (depth -4)
+- `drawNearObjects(palette, offset)` 메서드 추가
+- `update()` 에서 `drawNearObjects(palette, centerOffset * 0.55)` 호출
+
+---
+
+### 2. 구름 레이어 (Micro Motion) ⭐⭐⭐
+
+**현재**: 구름 없음
+**목표**: 느리게 이동하는 반투명 구름
+
+**구현 내용**
+- Layer depth: -14 (mountains와 midObjects 사이)
+- 구름 6~8개, 타원 2~3개 겹쳐 볼륨감 표현
+- 이동 속도: 0.05~0.12 px/frame (매우 느림)
+- 패럴랙스 배율: 0.15 (산보다 살짝 빠름)
+- Alpha: 0.12~0.25 (반투명 실루엣)
+- 밝기 펄스: `sin(time/3000)` × 0.05 로 구름 테두리 미세 발광
+
+**구현 파일**: `src/phaser/rendering/ParallaxBackgroundSystem.js`
+- `this.layers.clouds` Graphics 추가 (depth -14)
+- `this.cloudData` 배열 (x, y, w, h, speed, alpha, phase) — `generateGeometry()` 확장
+- `drawClouds(palette, offset)` 메서드 추가
+
+---
+
+### 3. Color Grading / Post-Process Overlay ⭐⭐⭐
+
+**현재**: 없음
+**목표**: 전체 화면에 Color Grade 적용 — 인디 → 프로 느낌
+
+**방법**: Phaser fullscreen Rectangle + BlendMode.MULTIPLY
+- Depth: 999 (최상단, UI 레이어 아래)
+- Alpha: 0.06~0.12 (약하게 적용)
+- 매 프레임 강도 sin 펄스 (±0.01) — 살아있는 느낌
+
+**테마별 Color Grade**
+
+| 테마 | Overlay 색상 | 효과 |
+|------|-------------|------|
+| dusk_forest | 0x4a3f80 (보라빛) | 황혼 차가운 그림자 통일 |
+| night_ruins | 0x0a0a2a (진청) | 심야 압박감 |
+| dawn (신규) | 0xff9944 (주황) | 새벽 따뜻한 빛 |
+| cave (신규) | 0x1a0a2a (심자주) | 던전 공포 분위기 |
+
+**구현 파일**: `src/phaser/rendering/AmbienceFxSystem.js`
+- `this.layers.grade` 추가 (fullscreen rect)
+- `drawColorGrade(paused)` 메서드
+- `THEME_GRADE_CONFIG` 상수로 테마별 색상·알파 관리
+
+---
+
+### 4. 나무 수관(Canopy) Micro Motion ⭐⭐
+
+**현재**: 잔디 blade만 흔들림
+**목표**: midObjects·nearObjects 나무 수관이 바람에 흔들림
+
+**구현 내용**
+- `windStrength` 글로벌 변수: `0.8 + 0.7 * sin(time / 8000)` — 바람 세기 변화
+- 나무(kind === 0) 수관 ellipse의 cx에 `sin(time/900 + phase) * 3 * windStrength` 오프셋
+- 뾰족한 나무(kind === 1) tip에 `±2px` 진동
+- nearObjects 나무 동일 적용 (배율 × 1.3 — 가까울수록 크게 흔들림)
+
+**구현 파일**: `src/phaser/rendering/ParallaxBackgroundSystem.js`
+- `drawMidObjects()` 수정
+- `drawNearObjects()` 에서 동일 패턴 적용
+- `this.windPhase` 내부 상태 추가
+
+---
+
+### 5. Depth Blur 시뮬레이션 ⭐⭐
+
+**현재**: 거리별 Alpha 차이만 존재
+**목표**: "흐림" 느낌 (GPU 셰이더 없이)
+
+**방법**: Soften Pass (동일 shape를 미세 offset으로 2회 그리기)
+- Far Mountains: 동일 shape를 x+1.5, y+1에 `alpha × 0.35`로 추가 그리기 → 부드러운 윤곽
+- Horizon Haze: 수평선 바로 위에 지평선 색 gradient 직사각형 추가 (alpha 0.18) → 대기원근감
+- Near Objects 전경: foreground 색 얇은 gradient strip overlay (depth -3, alpha 0.12) → 전경 흐림
+
+**구현 파일**: `src/phaser/rendering/ParallaxBackgroundSystem.js`
+- `drawMountains()` 내 soften pass 루프 추가
+- `drawHorizonHaze(palette)` 헬퍼 메서드
+- `drawForegroundVignette(palette)` 전경 오버레이
+
+---
+
+### 6. 신규 테마 추가 ⭐⭐
+
+**현재**: dusk_forest / night_ruins (2개)
+**추가**: dawn (새벽), cave (동굴/던전)
+
+**dawn 팔레트**
+```js
+dawn: {
+    skyTop: 0xff7744, skyBottom: 0xffcc88,
+    horizonGlow: 0xffa040,
+    mountainFar: 0x5a4030, mountainNear: 0x7a5040,
+    objectDark: 0x4a3828, objectLight: 0x7a6248,
+    grassDark: 0x3a5828, grassLight: 0x6a9048
+}
+```
+
+**cave 팔레트**
+```js
+cave: {
+    skyTop: 0x0d0810, skyBottom: 0x1a1030,
+    horizonGlow: 0x442266,
+    mountainFar: 0x1a1424, mountainNear: 0x2a1e3c,
+    objectDark: 0x1e1628, objectLight: 0x2e2244,
+    grassDark: 0x1a2018, grassLight: 0x2a3428
+}
+```
+
+**cave 특이사항**: 별 → 종유석 포인트로 교체, 빛줄기 → 용암 반사로 교체
+
+**구현 파일**: `src/phaser/rendering/ParallaxBackgroundSystem.js` — `THEME_CONFIG` 확장
+
+---
+
+### Phase 8 구현 우선순위
+
+| 순위 | 항목 | 임팩트 | 파일 |
+|------|------|--------|------|
+| 1 | Color Grading Overlay | ⭐⭐⭐ | AmbienceFxSystem.js |
+| 2 | 구름 레이어 (Micro Motion) | ⭐⭐⭐ | ParallaxBackgroundSystem.js |
+| 3 | Near Objects 5번째 레이어 | ⭐⭐⭐ | ParallaxBackgroundSystem.js |
+| 4 | 나무 Canopy 흔들림 (windStrength) | ⭐⭐ | ParallaxBackgroundSystem.js |
+| 5 | Depth Blur 시뮬레이션 | ⭐⭐ | ParallaxBackgroundSystem.js |
+| 6 | 신규 테마 (dawn / cave) | ⭐⭐ | ParallaxBackgroundSystem.js |
+
+### 핵심 구현 파일
+
+| 파일 | 수정 항목 |
+|------|-----------|
+| `src/phaser/rendering/ParallaxBackgroundSystem.js` | 구름·nearObjects·Depth Blur·새 테마·Canopy Motion |
+| `src/phaser/rendering/AmbienceFxSystem.js` | Color Grading Overlay |

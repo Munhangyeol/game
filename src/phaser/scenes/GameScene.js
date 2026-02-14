@@ -1,4 +1,6 @@
 ﻿import { JOBS } from '../../../data/jobs.js';
+import { ParallaxBackgroundSystem } from '../rendering/ParallaxBackgroundSystem.js';
+import { AmbienceFxSystem } from '../rendering/AmbienceFxSystem.js';
 
 // ???????????????? ?뚮옯???덉씠?꾩썐 ????????????????
 const PLATFORMS = [
@@ -18,6 +20,13 @@ const MONSTER_TYPES = {
     fireBug: { name: '불꽃 버그', color: 0xff6600, w: 44, h: 35, hpMult: 2.8, atkMult: 1.5, expMult: 3.0, mesoMult: 4 },
     rockWhale: { name: '바위 고래', color: 0x8899aa, w: 70, h: 50, hpMult: 5.0, atkMult: 2.0, expMult: 6.0, mesoMult: 8 },
     dragon: { name: '고룡', color: 0x8844ff, w: 80, h: 65, hpMult: 10.0, atkMult: 3.0, expMult: 15.0, mesoMult: 20 },
+};
+
+const DEFAULT_BACKGROUND_PROFILE = {
+    quality: 'high',
+    theme: 'dusk_forest',
+    ambienceEnabled: true,
+    parallaxStrength: 1,
 };
 
 export default class GameScene extends Phaser.Scene {
@@ -67,6 +76,9 @@ export default class GameScene extends Phaser.Scene {
 
     create() {
         this.cameras.main.setBackgroundColor('#1a1a3e');
+        this.backgroundProfile = { ...DEFAULT_BACKGROUND_PROFILE };
+        this.cheats = { godMode: false };
+        this.skillHoldNextFireAt = [0, 0, 0];
 
         // ?? 寃뚯엫 ?곹깭 珥덇린????
         this.initState();
@@ -104,16 +116,16 @@ export default class GameScene extends Phaser.Scene {
         // ?? ?뚮뜑留곸슜 洹몃옒?쎌뒪 ?덉씠????
         this.drawLayer = this.add.graphics();
         this.drawLayer.setDepth(10);
-        this.uiLayer   = this.add.graphics();   // 異붽? UI 洹몃옒??
+        this.uiLayer   = this.add.graphics();
         this.uiLayer.setDepth(11);
-
-        // ?? ?ㅽ? 諛곌꼍 ?곗씠??(?뺤쟻) ??
-        this.stars = Array.from({ length: 60 }, (_, i) => ({
-            x: (i * 137 + 41) % 1000,
-            y: (i * 97  + 23) % 490,
-            r: (i % 3) + 1,
-            phase: Math.random() * Math.PI * 2
-        }));
+        // ADD blend FX layer for glow effects
+        this.fxLayer = this.add.graphics();
+        this.fxLayer.setDepth(12);
+        this.fxLayer.setBlendMode(Phaser.BlendModes.ADD);
+        this.setupBackgroundProfileListener();
+        this.setupCheatListener();
+        this.events.once('shutdown', this.handleSceneShutdown, this);
+        this.events.once('destroy', this.handleSceneShutdown, this);
 
         // ?? DOM HUD??gameHudUpdate CustomEvent濡??낅뜲?댄듃????
 
@@ -148,6 +160,12 @@ export default class GameScene extends Phaser.Scene {
             trail: [],
             critCount: 0,
             playFrames: 0,
+            capeSwingX: 0,  // 망토 끝점의 월드 X 오프셋 (Secondary Motion)
+            hairSwingX: 0,  // 머리카락/깃털/후드 끝점의 월드 X 오프셋
+            nextBlinkAt: 0, // 다음 눈 깜빡임 타임스탬프 (ms)
+            blinkEndAt: 0,  // 눈 깜빡임 종료 타임스탬프 (ms)
+            squashEndAt: 0, // 피격 Squash 종료 타임스탬프 (ms)
+            squashDur: 150, // Squash 총 지속시간 (ms)
         };
         this.gs = {   // game state
             combo: 0,
@@ -155,6 +173,8 @@ export default class GameScene extends Phaser.Scene {
             hitStop: 0,
             paused: false,
             gameOver: false,
+            levelUpGlowStart: 0,
+            levelUpGlowDur: 800,
         };
         this.monsters = [];
         this.activeEffects = [];
@@ -169,11 +189,115 @@ export default class GameScene extends Phaser.Scene {
     //  諛곌꼍 (?뺤쟻 ?쒕줈?? create ??1??
     // ??????????????????????????????????????????????????????????
     createBackground() {
-        // 諛곌꼍? 蹂꾨룄 ?덉씠?댁뿉 1?뚮쭔 洹몃┝ (drawLayer? 遺꾨━??fillGradientStyle ?쇱슜 踰꾧렇 諛⑹?)
-        this.bgLayer = this.add.graphics();
-        this.bgLayer.setDepth(-1);
-        this.bgLayer.fillGradientStyle(0x1a1a3e, 0x1a1a3e, 0x2a2a5e, 0x2a2a5e, 1);
-        this.bgLayer.fillRect(0, 0, 1000, 600);
+        this.backgroundSystem = new ParallaxBackgroundSystem(this, {
+            worldWidth: 1000,
+            worldHeight: 600,
+            quality: this.backgroundProfile.quality,
+            theme: this.backgroundProfile.theme,
+            parallaxStrength: this.backgroundProfile.parallaxStrength,
+        });
+
+        this.ambienceSystem = new AmbienceFxSystem(this, {
+            worldWidth: 1000,
+            worldHeight: 600,
+            quality: this.backgroundProfile.quality,
+            theme: this.backgroundProfile.theme,
+            ambienceEnabled: this.backgroundProfile.ambienceEnabled,
+        });
+    }
+
+    setupBackgroundProfileListener() {
+        this.onBackgroundProfileChange = (e) => {
+            const detail = e?.detail || {};
+            this.applyBackgroundProfile(detail);
+        };
+        window.addEventListener('backgroundProfileChange', this.onBackgroundProfileChange);
+    }
+
+    setupCheatListener() {
+        this.onCheatCommand = (e) => {
+            const detail = e?.detail || {};
+            this.applyCheatCommand(detail);
+        };
+        window.addEventListener('mqCheatCommand', this.onCheatCommand);
+    }
+
+    applyBackgroundProfile(detail = {}) {
+        const merged = {
+            ...this.backgroundProfile,
+            ...detail,
+        };
+        this.backgroundProfile = merged;
+        if (this.backgroundSystem) this.backgroundSystem.setProfile(merged);
+        if (this.ambienceSystem) this.ambienceSystem.setProfile(merged);
+    }
+
+    updateBackgroundLayers(delta, paused = false) {
+        const focusX = this.playerBody?.x ?? 500;
+        if (this.backgroundSystem) this.backgroundSystem.update(focusX, delta);
+        if (this.ambienceSystem) this.ambienceSystem.update(focusX, delta, paused);
+    }
+
+    applyCheatCommand(detail = {}) {
+        const cmd = String(detail.command || '').toLowerCase();
+        const value = detail.value;
+
+        switch (cmd) {
+            case 'setlevel': {
+                const target = Math.max(1, Math.floor(Number(value) || 1));
+                if (target < this.ps.level) {
+                    this.addChatMessage(`치트: 현재 레벨(${this.ps.level})보다 낮게 설정할 수 없습니다.`);
+                    return;
+                }
+                while (this.ps.level < target) {
+                    this.ps.exp = this.ps.expToLevel;
+                    this.checkLevelUp();
+                }
+                this.addChatMessage(`치트: 레벨을 ${this.ps.level}(으)로 설정했습니다.`);
+                break;
+            }
+            case 'setmeso': {
+                this.ps.meso = Math.max(0, Math.floor(Number(value) || 0));
+                this.addChatMessage(`치트: 메소를 ${this.ps.meso}(으)로 설정했습니다.`);
+                break;
+            }
+            case 'addmeso': {
+                this.ps.meso = Math.max(0, this.ps.meso + Math.floor(Number(value) || 0));
+                this.addChatMessage(`치트: 메소가 ${this.ps.meso}(으)로 변경되었습니다.`);
+                break;
+            }
+            case 'heal': {
+                this.ps.hp = this.ps.maxHp;
+                this.ps.mp = this.ps.maxMp;
+                this.addChatMessage('치트: HP/MP를 모두 회복했습니다.');
+                break;
+            }
+            case 'godmode': {
+                this.cheats.godMode = !!value;
+                this.addChatMessage(`치트: 무적 모드 ${this.cheats.godMode ? 'ON' : 'OFF'}`);
+                break;
+            }
+        }
+        this.updateHUD();
+    }
+
+    handleSceneShutdown() {
+        if (this.onBackgroundProfileChange) {
+            window.removeEventListener('backgroundProfileChange', this.onBackgroundProfileChange);
+            this.onBackgroundProfileChange = null;
+        }
+        if (this.onCheatCommand) {
+            window.removeEventListener('mqCheatCommand', this.onCheatCommand);
+            this.onCheatCommand = null;
+        }
+        if (this.backgroundSystem) {
+            this.backgroundSystem.destroy();
+            this.backgroundSystem = null;
+        }
+        if (this.ambienceSystem) {
+            this.ambienceSystem.destroy();
+            this.ambienceSystem = null;
+        }
     }
 
     // ??????????????????????????????????????????????????????????
@@ -254,6 +378,43 @@ export default class GameScene extends Phaser.Scene {
         this.input.keyboard.on('keydown-X',   () => this.useSkill(1));
         this.input.keyboard.on('keydown-C',   () => this.useSkill(2));
         this.input.keyboard.on('keydown-A',   () => this.basicAttack());
+        this.input.keyboard.on('keyup-Z',     () => { this.skillHoldNextFireAt[0] = 0; });
+        this.input.keyboard.on('keyup-X',     () => { this.skillHoldNextFireAt[1] = 0; });
+        this.input.keyboard.on('keyup-C',     () => { this.skillHoldNextFireAt[2] = 0; });
+    }
+
+    isArcherRapidFireSkill(skill) {
+        if (!skill || this.ps.job !== 'archer') return false;
+        return skill.type === 'doubleShot' || skill.type === 'tripleShot';
+    }
+
+    updateArcherHoldSkills(time) {
+        if (this.ps.job !== 'archer') return;
+
+        const job = JOBS[this.ps.job];
+        const tier = job.tiers[this.ps.tier];
+        const keyBySlot = [this.keys.z, this.keys.x, this.keys.c];
+
+        for (let idx = 0; idx < 3; idx++) {
+            const keyObj = keyBySlot[idx];
+            const skill = tier.skills[idx];
+
+            if (!keyObj?.isDown || !this.isArcherRapidFireSkill(skill)) {
+                this.skillHoldNextFireAt[idx] = 0;
+                continue;
+            }
+
+            if (this.skillHoldNextFireAt[idx] === 0) {
+                this.skillHoldNextFireAt[idx] = time + 180;
+                continue;
+            }
+
+            if (time >= this.skillHoldNextFireAt[idx]) {
+                this.useSkill(idx);
+                const repeat = skill.type === 'tripleShot' ? 55 : 80;
+                this.skillHoldNextFireAt[idx] = time + repeat;
+            }
+        }
     }
 
     // ??????????????????????????????????????????????????????????
@@ -262,6 +423,7 @@ export default class GameScene extends Phaser.Scene {
     update(time, delta) {
         if (this.gs.gameOver) return;
         if (this.gs.paused) {
+            this.updateBackgroundLayers(delta, true);
             this.drawAll(time);  // ?뺤? ?붾㈃留??뚮뜑留?
             this.updateHUD();
             return;
@@ -269,11 +431,26 @@ export default class GameScene extends Phaser.Scene {
 
         this.ps.playFrames++;
 
-        // ?덊듃?ㅽ넲 (?꾨젅???ㅽ궢)
+        // 히트스톱 (게임 루프 일시정지)
         if (this.gs.hitStop > 0) {
             this.gs.hitStop--;
+            // 스프라이트 애니메이션도 동결 → HIT 프레임 유지 효과
+            if (this.playerSprite && !this.playerSprite.anims.isPaused) {
+                this.playerSprite.anims.pause();
+            }
+            this.updateBackgroundLayers(delta, false);
             this.drawAll(time);
             return;
+        }
+        // 히트스톱 종료 → 스프라이트 애니메이션 재개
+        if (this.playerSprite?.anims.isPaused) {
+            this.playerSprite.anims.resume();
+        }
+
+        if (this.cheats?.godMode) {
+            this.ps.hp = this.ps.maxHp;
+            this.ps.mp = this.ps.maxMp;
+            this.ps.invincible = Math.max(this.ps.invincible, 60);
         }
 
         // 肄ㅻ낫 由ъ뀑 (1.2珥??댁긽 ?덊듃 ?놁쓣 ??
@@ -299,6 +476,7 @@ export default class GameScene extends Phaser.Scene {
 
         // ?뚮젅?댁뼱 ?대룞
         this.updateMovement();
+        this.updateArcherHoldSkills(time);
 
         // 紐ъ뒪???낅뜲?댄듃
         this.updateMonsters(time, delta);
@@ -318,9 +496,13 @@ export default class GameScene extends Phaser.Scene {
 
         // ?꾨줈?앺????낅뜲?댄듃
         this.updateProjectiles(delta / (1000 / 60));
-
         // ?덈꺼??泥댄겕
         this.checkLevelUp();
+
+        // Secondary Motion (망토·머리카락 물리)
+        this.updateSecondaryMotion(dt);
+
+        this.updateBackgroundLayers(delta, false);
 
         // ?뚮뜑留?
         this.drawAll(time);
@@ -449,6 +631,10 @@ export default class GameScene extends Phaser.Scene {
         for (let i = this.monsters.length - 1; i >= 0; i--) {
             const m = this.monsters[i];
             if (m.dead) {
+                if (m.fadingOut) {
+                    // Sprite is still fading out via tween — wait for it to finish
+                    continue;
+                }
                 if (m.sprite) {
                     m.sprite.destroy();
                     m.sprite = null;
@@ -509,6 +695,31 @@ export default class GameScene extends Phaser.Scene {
                     this.ps.invincible = 60;
                     this.cameras.main.shake(150, 0.012);
                     this.showFloatText(px, py - 40, `-${Math.floor(dmg * reduction)}`, '#ff4444');
+                    // ── Hit Reaction 강화 ──────────────────────────────────────
+                    // 1) White Flash: 스프라이트를 즉시 흰색으로 → 80ms 후 클리어
+                    if (this.playerSprite) {
+                        this.playerSprite.setTint(0xffffff);
+                        this.time.delayedCall(80, () => {
+                            if (this.playerSprite) this.playerSprite.clearTint();
+                        });
+                    }
+
+                    // 2) 노크백: 몬스터 반대 방향으로 속도 충격
+                    const hitDir = px > m.x ? 1 : -1;
+                    this.playerBody.setVelocityX(
+                        this.playerBody.body.velocity.x + hitDir * 220
+                    );
+                    if (this.playerBody.body.blocked.down) {
+                        this.playerBody.setVelocityY(-160);  // 살짝 튀어오름
+                    }
+
+                    // 3) Squash & Stretch: 가로 확장, 세로 압축 → 150ms 복귀
+                    this.ps.squashEndAt = this.time.now + 150;
+
+                    // 4) 피격 파티클: 흰색 광채 + 붉은 파편
+                    this.addBurstParticles(px, py - 20, 0xffffff, 4);
+                    this.addBurstParticles(px, py - 20, 0xff2222, 3);
+
 
                     if (this.ps.hp <= 0) {
                         this.ps.hp = 0;
@@ -545,7 +756,16 @@ export default class GameScene extends Phaser.Scene {
         const basic = job.basicAttack;
         this.ps.attackCooldown = basic.cooldown;
         this.ps.isAttacking = true;
-        this.time.delayedCall(basic.animDuration || 150, () => { this.ps.isAttacking = false; });
+        this.time.delayedCall(basic.animDuration || 350, () => { this.ps.isAttacking = false; });
+
+        // Frame 2 HitStop: 윈드업 완료 시점에 히트스톱 발동 (공격 스냅감)
+        // warrior: 90+80=170ms, thief: 50+40=90ms, archer: 70+60=130ms
+        const f2Delay = { warrior: 170, thief: 90, archer: 130 }[this.ps.job] || 150;
+        this.time.delayedCall(f2Delay, () => {
+            if (!this.gs.gameOver && !this.gs.paused && this.ps.isAttacking) {
+                this.gs.hitStop = Math.max(this.gs.hitStop, 4); // ~66ms @ 60fps
+            }
+        });
 
         let atkMult = 1;
         if (this.ps.buffs.rage)      atkMult *= this.ps.buffs.rage.attackBonus      || 1.5;
@@ -556,6 +776,12 @@ export default class GameScene extends Phaser.Scene {
 
         const cx = this.playerBody.x;
         const cy = this.playerBody.y;
+
+        // Attack lunge: 공격 방향으로 미세 전진
+        const lungePower = { warrior: 70, thief: 90, archer: 0 }[this.ps.job] || 0;
+        if (lungePower > 0) {
+            this.playerBody.setVelocityX(this.playerBody.body.velocity.x + this.ps.direction * lungePower);
+        }
 
         if (basic.type === 'sword') {
             this.addEffect('swordSlash', cx, cy, this.ps.direction, 15);
@@ -590,9 +816,20 @@ export default class GameScene extends Phaser.Scene {
         }
 
         this.ps.mp -= skill.mp;
-        this.ps.skillCooldowns[idx] = skill.cooldown;
+        const skillCooldown = (skill.type === 'tripleShot')
+            ? Math.max(8, Math.floor(skill.cooldown * 0.8))
+            : skill.cooldown;
+        this.ps.skillCooldowns[idx] = skillCooldown;
         this.ps.isAttacking = true;
-        this.time.delayedCall(200, () => { this.ps.isAttacking = false; });
+        this.time.delayedCall(350, () => { this.ps.isAttacking = false; });
+
+        // Frame 2 HitStop: 스킬도 동일한 공격 애니메이션 사용
+        const f2DelaySkill = { warrior: 170, thief: 90, archer: 130 }[this.ps.job] || 150;
+        this.time.delayedCall(f2DelaySkill, () => {
+            if (!this.gs.gameOver && !this.gs.paused && this.ps.isAttacking) {
+                this.gs.hitStop = Math.max(this.gs.hitStop, 4);
+            }
+        });
 
         let atkMult = 1;
         if (this.ps.buffs.rage)      atkMult *= this.ps.buffs.rage.attackBonus       || 1.5;
@@ -604,8 +841,11 @@ export default class GameScene extends Phaser.Scene {
         const cx = this.playerBody.x;
         const cy = this.playerBody.y;
 
-        // ?ㅽ궗紐??쒖떆
-        this.showFloatText(cx, cy - 50, this.getSkillDisplayName(skill), JOBS[this.ps.job].color, false, true);
+        // 스킬 lunge: 공격 방향으로 미세 전진
+        const skillLunge = { warrior: 50, thief: 70, archer: 0 }[this.ps.job] || 0;
+        if (skillLunge > 0 && !skill.buff) {
+            this.playerBody.setVelocityX(this.playerBody.body.velocity.x + this.ps.direction * skillLunge);
+        }
 
         this.execSkill(skill, baseDmg, cx, cy);
     }
@@ -651,7 +891,7 @@ export default class GameScene extends Phaser.Scene {
             case 'giantRampage': {
                 this.addEffect('slashBlast', cx, cy, dir, 30);
                 const range = skill.range || 150;
-                this.hitMonstersRadius(cx, cy, range, dmg);
+                this.hitMonstersRadius(cx, cy, range, dmg, true, 7, -3);
                 break;
             }
             case 'shieldCounter': {
@@ -677,7 +917,9 @@ export default class GameScene extends Phaser.Scene {
                 const box = this.makeAttackBox(cx, cy, 80, 70);
                 const hits = skill.hits || 4;
                 for (let h = 0; h < hits; h++) {
-                    this.time.delayedCall(h * 80, () => this.hitMonsters(box, dmg, false, 0, 0));
+                    // 마지막 타격에 knockback 적용
+                    const isLast = h === hits - 1;
+                    this.time.delayedCall(h * 80, () => this.hitMonsters(box, dmg, isLast, isLast ? 6 : 0, isLast ? -2 : 0));
                 }
                 break;
             }
@@ -687,7 +929,7 @@ export default class GameScene extends Phaser.Scene {
                 this.addEffect('assassinate', cx, cy, dir, 30);
                 const mult = skill.type === 'deadlyBlow' ? 1.3 : skill.type === 'soulStrike' ? 1.4 : 1.0;
                 const box = this.makeAttackBox(cx, cy, 100, 70);
-                this.time.delayedCall(200, () => this.hitMonsters(box, dmg * mult, true, 0, 0, true));
+                this.time.delayedCall(200, () => this.hitMonsters(box, dmg * mult, true, 8, -6, true));
                 break;
             }
             case 'stealthBackstab': {
@@ -703,12 +945,12 @@ export default class GameScene extends Phaser.Scene {
             case 'tripleShot':
             case 'windShot':
             case 'infiniteShot': {
-                this.addEffect('doubleShot', cx, cy, dir, 15);
+                const isTriple = skill.type === 'tripleShot';
+                this.addEffect(isTriple ? 'tripleShot' : 'doubleShot', cx, cy, dir, isTriple ? 18 : 15);
                 const arrows = skill.arrows || 2;
                 for (let i = 0; i < arrows; i++) {
-                    this.time.delayedCall(i * 80, () => {
-                        const oy = (i - (arrows - 1) / 2) * 18;
-                        this.fireProjectile(cx, cy + oy, dmg, (i - (arrows - 1) / 2) * 100);
+                    this.time.delayedCall(i * (isTriple ? 45 : 80), () => {
+                        this.fireProjectile(cx, cy, dmg, 0, false, 80, isTriple ? 1.2 : 1.0);
                     });
                 }
                 break;
@@ -722,14 +964,26 @@ export default class GameScene extends Phaser.Scene {
             case 'enhancedRain':
             case 'allDayRain': {
                 const mult = skill.type === 'enhancedRain' ? 1.5 : skill.type === 'allDayRain' ? 2.0 : 1.0;
-                this.addEffect('arrowRain', cx, cy, dir, 60);
-                const startX = Math.max(0, cx - 200);
+                const laneCount = 15;
                 const width = 400;
-                for (let i = 0; i < 15; i++) {
-                    const delay = (i / 15) * 600 + 300;
-                    const rx = startX + (i / 15) * width;
+                const startX = Math.max(0, Math.min(1000 - width, cx - width / 2));
+                const topY = 40;
+                const impactY = 520;
+
+                this.addEffect('arrowRain', cx, cy, dir, 60, {
+                    startX,
+                    width,
+                    laneCount,
+                    topY,
+                    impactY,
+                });
+
+                for (let i = 0; i < laneCount; i++) {
+                    const delay = (i / laneCount) * 600 + 300;
+                    const rx = startX + ((i + 0.5) / laneCount) * width;
                     this.time.delayedCall(delay, () => {
-                        this.hitMonstersNear(rx, dmg * mult, 40);
+                        this.addEffect('arrowRainImpact', rx, impactY, 1, 14);
+                        this.hitMonstersRainStrike(rx, impactY, dmg * mult, 44, 110);
                     });
                 }
                 break;
@@ -760,12 +1014,17 @@ export default class GameScene extends Phaser.Scene {
         }
     }
 
-    hitMonstersRadius(cx, cy, range, dmg) {
+    hitMonstersRadius(cx, cy, range, dmg, knockback = false, kvx = 0, kvy = 0) {
         for (const m of this.monsters) {
             if (m.dead || m.invincible > 0) continue;
             const dx = m.x - cx, dy = m.y - cy;
             if (Math.sqrt(dx * dx + dy * dy) < range) {
                 this.dealDamage(m, dmg, false);
+                if (knockback) {
+                    const mdir = dx >= 0 ? 1 : -1;
+                    m.vx = mdir * kvx;
+                    m.vy = kvy;
+                }
             }
         }
     }
@@ -774,6 +1033,15 @@ export default class GameScene extends Phaser.Scene {
         for (const m of this.monsters) {
             if (m.dead || m.invincible > 0) continue;
             if (Math.abs(m.x - rx) < range) {
+                this.dealDamage(m, dmg, false);
+            }
+        }
+    }
+
+    hitMonstersRainStrike(rx, ry, dmg, xRange, yRange) {
+        for (const m of this.monsters) {
+            if (m.dead || m.invincible > 0) continue;
+            if (Math.abs(m.x - rx) < xRange && Math.abs(m.y - ry) < yRange) {
                 this.dealDamage(m, dmg, false);
             }
         }
@@ -788,14 +1056,19 @@ export default class GameScene extends Phaser.Scene {
 
         m.hp -= dmg;
         m.invincible = 10;
-        // Monster hit flash (red tint)
+        // Monster hit flash: white burst → red damage tint
         if (m.sprite) {
-            m.sprite.setTint(0xff4444);
-            this.time.delayedCall(90, () => { if (m.sprite) m.sprite.clearTint(); });
+            m.sprite.setTint(0xffffff);
+            this.time.delayedCall(50, () => {
+                if (m.sprite) m.sprite.setTint(0xff4444);
+                this.time.delayedCall(60, () => {
+                    if (m.sprite) m.sprite.clearTint();
+                });
+            });
         }
         this.gs.combo++;
         this.gs.lastHitTime = this.time.now;
-        this.gs.hitStop = 3;
+        this.gs.hitStop = Math.max(this.gs.hitStop, 4);  // ~66ms, 기존 3→4프레임
 
         // ?誘몄? ?띿뒪??
         const color = backstab ? '#ff44ff' : isCrit ? '#ffff00' : '#ffffff';
@@ -815,25 +1088,46 @@ export default class GameScene extends Phaser.Scene {
         // ?щ쭩 泥섎━
         if (m.hp <= 0) {
             m.dead = true;
+            m.fadingOut = true;
             this.ps.kills++;
             this.ps.exp += m.exp * 4;
             this.ps.meso += m.meso;
             this.addEffect('monsterDie', m.x, m.y, 1, 20);
             this.showFloatText(m.x, m.y - m.h / 2 - 20, `+${m.exp} EXP`, '#ffff44');
             this.addBurstParticles(m.x, m.y, 0xffaa00, 28);
-            if (m.mt.hpMult >= 5) this.cameras.main.shake(140, 0.007);
-            // ?대쫫 ?띿뒪???뺣━
+            if (m.mt.hpMult >= 5) {
+                this.cameras.main.shake(140, 0.007);
+                this.physics.world.timeScale = 0.2;
+                this.time.delayedCall(300, () => { this.physics.world.timeScale = 1.0; });
+            }
+            // 이름 텍스트 제거
             const nt = this.monsterNameTexts.get(m.id);
             if (nt) { nt.destroy(); this.monsterNameTexts.delete(m.id); }
+            // Sprite fade-out: 위로 떠오르며 사라짐
+            if (m.sprite) {
+                this.tweens.add({
+                    targets: m.sprite,
+                    alpha: 0,
+                    y: m.sprite.y - 20,
+                    duration: 400,
+                    ease: 'Power2',
+                    onComplete: () => {
+                        if (m.sprite) { m.sprite.destroy(); m.sprite = null; }
+                        m.fadingOut = false;
+                    }
+                });
+            } else {
+                m.fadingOut = false;
+            }
         }
     }
 
-    fireProjectile(cx, cy, dmg, vyOffset, explosive = false, radius = 80) {
+    fireProjectile(cx, cy, dmg, vyOffset, explosive = false, radius = 80, speedMult = 1) {
         const dir = this.ps.direction;
         const piercing = !!(this.ps.buffs.soul);
         this.projectiles.push({
             x: cx + dir * 22, y: cy,
-            vx: dir * 14,
+            vx: dir * 14 * speedMult,
             vy: vyOffset / 60,
             dmg,
             dir,
@@ -866,7 +1160,7 @@ export default class GameScene extends Phaser.Scene {
                 if (Math.abs(proj.x - m.x) < m.w / 2 + 8 && Math.abs(proj.y - m.y) < m.h / 2 + 8) {
                     if (proj.explosive) {
                         this.addEffect('explosion', proj.x, proj.y, 1, 25);
-                        this.hitMonstersRadius(proj.x, proj.y, proj.radius, proj.dmg);
+                        this.hitMonstersRadius(proj.x, proj.y, proj.radius, proj.dmg, true, 9, -7);
                     } else {
                         this.dealDamage(m, proj.dmg, false);
                     }
@@ -879,8 +1173,8 @@ export default class GameScene extends Phaser.Scene {
 
     // ??????????????????????????????????????????????????????????
     //  ?댄럺???쒖뒪??    // ??????????????????????????????????????????????????????????
-    addEffect(type, x, y, dir, maxFrames) {
-        this.activeEffects.push({ type, x, y, dir, frame: 0, maxFrames: maxFrames || 20 });
+    addEffect(type, x, y, dir, maxFrames, data = null) {
+        this.activeEffects.push({ type, x, y, dir, frame: 0, maxFrames: maxFrames || 20, ...(data || {}) });
     }
 
     addBurstParticles(x, y, color, count) {
@@ -919,6 +1213,10 @@ export default class GameScene extends Phaser.Scene {
             this.addEffect('levelUp', cx, cy, 1, 40);
             this.addBurstParticles(cx, cy, 0xffff00, 20);
             this.cameras.main.shake(200, 0.01);
+            this.cameras.main.zoomTo(1.12, 150);
+            this.time.delayedCall(150, () => { this.cameras.main.zoomTo(1.0, 500); });
+            this.gs.levelUpGlowStart = this.time.now;
+            this.gs.levelUpGlowDur   = 800;
             this.showFloatText(cx, cy - 60, 'LEVEL UP!', '#ffff00', false, true);
 
             // ?꾩쭅 泥댄겕
@@ -946,9 +1244,13 @@ export default class GameScene extends Phaser.Scene {
         this.addEffect('promotion', cx, cy, 1, 60);
         this.addBurstParticles(cx, cy, 0xffffff, 40);
         this.cameras.main.shake(400, 0.02);
+        this.cameras.main.zoomTo(1.18, 200);
+        this.time.delayedCall(200, () => { this.cameras.main.zoomTo(1.0, 700); });
+        this.gs.levelUpGlowStart = this.time.now;
+        this.gs.levelUpGlowDur   = 1200;
         this.showFloatText(cx, cy - 80, `전직! ${this.getTierDisplayName(this.ps.job, this.ps.tier)}`, '#ffffff', false, true);
 
-        this.this.addChatMessage(`${tier.name}(으)로 전직했습니다!`);
+        this.addChatMessage(`${tier.name}(으)로 전직했습니다!`);
     }
 
     // ??????????????????????????????????????????????????????????
@@ -1087,13 +1389,7 @@ export default class GameScene extends Phaser.Scene {
     drawAll(time) {
         const g = this.drawLayer;
         g.clear();
-
-        // star background
-        for (const star of this.stars) {
-            const alpha = Math.max(0, 0.3 + 0.4 * Math.sin(time / 1000 + star.phase));
-            g.fillStyle(0xffffff, alpha);
-            g.fillCircle(star.x, star.y, star.r);
-        }
+        if (this.fxLayer) this.fxLayer.clear();
 
         // projectiles
         this.drawProjectiles(g);
@@ -1135,6 +1431,7 @@ export default class GameScene extends Phaser.Scene {
 
     updateMonsterSprite() {
         for (const m of this.monsters) {
+            if (m.dead) continue;  // dead/fading sprites managed by tween
             if (!m.sprite) this.spawnMonsterSprite(m);
             if (!m.sprite) continue;
             m.sprite.setPosition(m.x, m.y);
@@ -1167,12 +1464,191 @@ export default class GameScene extends Phaser.Scene {
         this.playerSprite.setAlpha(
             (this.ps.invincible > 0 && Math.floor(this.ps.invincible / 5) % 2 === 0) ? 0.35 : 1
         );
+
+        // 피격 Squash & Stretch: squashEndAt 동안 스케일 변형 후 복귀
+        let sqX = 1.0, sqY = 1.0;
+        if (this.ps.squashEndAt > 0) {
+            const remain = this.ps.squashEndAt - this.time.now;
+            if (remain > 0) {
+                const t = remain / this.ps.squashDur;  // 1(직후) → 0(복귀)
+                sqX = 1.0 + 0.20 * t;   // 1.2 → 1.0
+                sqY = 1.0 - 0.20 * t;   // 0.8 → 1.0
+            } else {
+                this.ps.squashEndAt = 0;
+            }
+        }
+
+        // Idle 숨쉬기: 1.5% 세로 스케일 변화 (squash와 합성)
+        if (state === 'idle') {
+            const breathe = 1.0 + Math.sin(this.time.now * 0.0015) * 0.015;
+            this.playerSprite.setScale(sqX, sqY * breathe);
+        } else {
+            this.playerSprite.setScale(sqX, sqY);
+        }
     }
+
+    // Secondary Motion: 망토·머리카락 물리 시뮬레이션
+    updateSecondaryMotion(dt) {
+        if (!this.playerBody) return;
+        const vx  = this.playerBody.body.velocity.x;
+        const spd = Math.min(Math.abs(vx) / 250, 1.0);
+
+        // ─── 망토 ─────────────────────────────────────────────────────
+        // 이동 반대 방향으로 지연 추종, 공격 시 순간 후방 스냅
+        let capeTarget;
+        if (this.ps.isAttacking) {
+            capeTarget = -this.ps.direction * 15;
+        } else {
+            capeTarget = -Math.sign(vx) * spd * 12;
+        }
+        const capeFactor = this.ps.isAttacking ? 0.65 : (Math.abs(vx) > 10 ? 0.12 : 0.06);
+        this.ps.capeSwingX += (capeTarget - this.ps.capeSwingX) * capeFactor * dt;
+
+        // ─── 머리카락 / 깃털 / 후드 ───────────────────────────────────
+        // 망토보다 작은 진폭, 약간 더 빠른 반응
+        let hairTarget;
+        if (this.ps.isAttacking) {
+            hairTarget = -this.ps.direction * 8;
+        } else {
+            hairTarget = -Math.sign(vx) * spd * 5;
+        }
+        const hairFactor = this.ps.isAttacking ? 0.50 : (Math.abs(vx) > 10 ? 0.10 : 0.05);
+        this.ps.hairSwingX += (hairTarget - this.ps.hairSwingX) * hairFactor * dt;
+
+        // ─── 눈 깜빡임 타이머 (3~6초 랜덤 간격) ─────────────────────────
+        const now = this.time.now;
+        if (now > this.ps.nextBlinkAt) {
+            this.ps.blinkEndAt  = now + 100;  // 0.1초 동안 눈 감기
+            this.ps.nextBlinkAt = now + 3000 + Math.random() * 3000;
+        }
+    }
+
 
     drawPlayerOverlays(g, time) {
         const bx = this.playerBody.x;
         const by = this.playerBody.y;
         const colorHex = parseInt(JOBS[this.ps.job].color.replace('#', ''), 16);
+
+        // ─── Secondary Motion: 망토 / 깃털 / 머리카락 ──────────────────────
+        // drawLayer(depth 10)에 그려서 스프라이트의 정적 망토를 덮어씀
+        // 좌표 변환: worldX = sprX + (texX - 24) * dir, worldY = sprY + texY - 46
+        //   (스프라이트 origin = (0.5, 0.72), 텍스처 크기 48×64 기준)
+        if (this.playerSprite) {
+            const sprX = this.playerSprite.x;
+            const sprY = this.playerSprite.y;
+            const dir  = this.ps.direction;
+            const csX  = this.ps.capeSwingX;   // 망토 끝점 월드 X 오프셋
+            const hsX  = this.ps.hairSwingX;   // 머리카락/깃털 끝점 월드 X 오프셋
+
+            if (this.ps.job === 'warrior') {
+                // ── 전사 망토 (짙은 빨강) ───────────────────────────────────
+                // 텍스처 내 망토: fillTriangle(13,18), (7,42), (20,36)
+                const a1x = sprX - dir * 11, a1y = sprY - 28;  // 어깨 상단
+                const a2x = sprX - dir *  4, a2y = sprY - 10;  // 어깨 하단
+                const midX = sprX - dir * 14 + csX * 0.5;      // 중간 포인트 (절반 스윙)
+                const midY = sprY - 16;
+                const tipX = sprX - dir * 17 + csX;            // 끝점 (전체 스윙)
+                const tipY = sprY - 4 - Math.abs(csX) * 0.2;   // 스윙 시 살짝 올라감
+
+                g.fillStyle(0x991111, 0.90);
+                g.fillTriangle(a1x, a1y, a2x, a2y, midX, midY);  // 상단 삼각형
+                g.fillStyle(0x771111, 0.84);
+                g.fillTriangle(a2x, a2y, midX, midY, tipX, tipY); // 하단 삼각형
+                g.lineStyle(1, 0xcc1111, 0.45);
+                g.lineBetween(a1x, a1y, tipX, tipY);               // 테두리 하이라이트
+
+                // ── 투구 깃털 흔들림 ─────────────────────────────────────
+                const px = sprX + hsX * 0.6;   // 깃털 끝 X
+                g.fillStyle(0xff2222, 0.88);
+                g.fillTriangle(px - 3, sprY - 47, px + 3, sprY - 47, px + hsX * 0.4, sprY - 54);
+                g.lineStyle(2, 0xff5555, 0.65);
+                g.lineBetween(sprX, sprY - 47, px + hsX * 0.5, sprY - 54);
+
+            } else if (this.ps.job === 'thief') {
+                // ── 도적 망토 (짙은 보라) ──────────────────────────────────
+                const a1x = sprX - dir * 11, a1y = sprY - 28;
+                const a2x = sprX - dir *  3, a2y = sprY - 10;
+                const midX = sprX - dir * 13 + csX * 0.5;
+                const midY = sprY - 16;
+                const tipX = sprX - dir * 16 + csX;
+                const tipY = sprY - 3 - Math.abs(csX) * 0.2;
+
+                g.fillStyle(0x2a0044, 0.88);
+                g.fillTriangle(a1x, a1y, a2x, a2y, midX, midY);
+                g.fillStyle(0x330055, 0.82);
+                g.fillTriangle(a2x, a2y, midX, midY, tipX, tipY);
+                g.lineStyle(1, 0x550077, 0.40);
+                g.lineBetween(a1x, a1y, tipX, tipY);
+
+                // ── 삼각 모자 끝 흔들림 ──────────────────────────────────
+                // 모자 원뿔: 눈에 보이는 위치 기준 sprY-38 ~ sprY-50
+                const hatBaseY = sprY - 38;
+                const htx = sprX + dir * 1 + hsX * 0.55;
+                g.fillStyle(0x1f0f38, 0.90);
+                g.fillTriangle(
+                    sprX - dir * 7, hatBaseY,
+                    sprX + dir * 7, hatBaseY,
+                    htx, hatBaseY - 12
+                );
+
+            } else if (this.ps.job === 'archer') {
+                // ── 궁수 후드 측면 플랩 ──────────────────────────────────
+                const flapAX = sprX - dir * 8, flapAY = sprY - 36;
+                const flapBX = sprX - dir * 4, flapBY = sprY - 38;
+                const flapTX = sprX - dir * 11 + csX * 0.30;
+                const flapTY = sprY - 28;
+                g.fillStyle(0x1a5a28, 0.78);
+                g.fillTriangle(flapAX, flapAY, flapBX, flapBY, flapTX, flapTY);
+
+                // ── 머리카락 가닥 (후드 아래에서 삐져나옴) ──────────────
+                g.fillStyle(0x5a3300, 0.82);
+                g.fillRect(sprX + dir * 2 + hsX * 0.35, sprY - 46, 3, 6);
+                g.fillRect(sprX - dir * 3 + hsX * 0.25, sprY - 44, 2, 4);
+            }
+        }
+
+        // ─── Idle 강화: 눈 깜빡임 + 무기 광채 흔들림 ──────────────────────
+        // 조건: 지상, 비공격, 비이동 상태
+        if (this.playerSprite && this.playerBody?.body.blocked.down &&
+            !this.ps.isAttacking && Math.abs(this.playerBody.body.velocity.x) < 10) {
+
+            const sprX = this.playerSprite.x;
+            const sprY = this.playerSprite.y;
+            const dir  = this.ps.direction;
+
+            // ── 눈 깜빡임: 피부색 rect로 눈 영역 덮기 ─────────────────────
+            // 눈 위치 (스프라이트 텍스처 좌표 → 월드): (sprX+dir*2, sprY-42), 3×3px
+            if (this.time.now < this.ps.blinkEndAt) {
+                g.fillStyle(0xffdeb3, 1.0);
+                const eyeX = dir > 0 ? sprX + 2 : sprX - 5;
+                g.fillRect(eyeX, sprY - 42, 3, 3);
+            }
+
+            // ── 무기 광채 흔들림: 칼날/화살 위를 이동하는 하이라이트 ────────
+            // shimmer: -1..1 사인파, 주기 ~3.1초
+            const shimmer = Math.sin(time * 0.002);
+
+            if (this.ps.job === 'warrior') {
+                // 검 날 따라 이동하는 흰색 광채 (blade: sprY-50 ~ sprY-28, dir측 x+12)
+                const bladeProgress = (shimmer + 1) / 2;          // 0..1
+                const glowY = sprY - 50 + bladeProgress * 22;
+                g.fillStyle(0xffffff, 0.55 + shimmer * 0.15);
+                g.fillRect(sprX + dir * 12, glowY, 2, 4);
+
+            } else if (this.ps.job === 'thief') {
+                // 단검 2자루 끝점 반짝임
+                const alpha = 0.5 + shimmer * 0.25;
+                g.fillStyle(0xffffff, alpha);
+                g.fillRect(sprX + dir * 12, sprY - 20 + shimmer * 2, 2, 2);
+                g.fillRect(sprX + dir * 12, sprY -  8 + shimmer * 2, 2, 2);
+
+            } else if (this.ps.job === 'archer') {
+                // 활 끝 포인트 glow (bowX 근처, 위아래로 미세 이동)
+                const bowX = sprX + dir * 24;
+                g.fillStyle(0xffffaa, 0.40 + shimmer * 0.20);
+                g.fillCircle(bowX, sprY - 28 + shimmer * 3, 2);
+            }
+        }
 
         for (let i = 0; i < this.ps.trail.length; i++) {
             const t = this.ps.trail[i];
@@ -1198,6 +1674,75 @@ export default class GameScene extends Phaser.Scene {
             const r = 38 + Math.sin(time / 120) * 4;
             g.lineStyle(3, 0xffffaa, 0.5);
             g.strokeCircle(bx, by, r);
+        }
+        // ─── fxLayer Glow (ADD blend mode) ──────────────────────────────
+        const fx = this.fxLayer;
+        if (fx && this.playerSprite) {
+            const sprX = this.playerSprite.x;
+            const sprY = this.playerSprite.y;
+            const dir  = this.ps.direction;
+
+            // 1) 무기 윈드업 Glow: 공격 중 무기 끝 발광
+            if (this.ps.isAttacking) {
+                if (this.ps.job === 'warrior') {
+                    fx.fillStyle(0xff8800, 0.40);
+                    fx.fillCircle(sprX + dir * 14, sprY - 38, 10);
+                    fx.fillStyle(0xffffff, 0.20);
+                    fx.fillCircle(sprX + dir * 14, sprY - 38, 5);
+                } else if (this.ps.job === 'thief') {
+                    fx.fillStyle(0xaa00ff, 0.40);
+                    fx.fillCircle(sprX + dir * 13, sprY - 20, 7);
+                    fx.fillStyle(0xaa00ff, 0.30);
+                    fx.fillCircle(sprX + dir * 13, sprY - 8,  6);
+                } else if (this.ps.job === 'archer') {
+                    fx.fillStyle(0xffff00, 0.40);
+                    fx.fillCircle(sprX + dir * 20, sprY - 34, 7);
+                    fx.fillStyle(0xffffff, 0.20);
+                    fx.fillCircle(sprX + dir * 20, sprY - 34, 3);
+                }
+            }
+
+            // 2) 캐릭터 Rim Light: 버프/피격 무적 상태에 따른 외곽 발광
+            let rimColor = 0, rimAlpha = 0;
+            if (this.ps.buffs.rage || this.ps.buffs.berserker || this.ps.buffs.heroicWill) {
+                rimColor = 0xff2200;
+                rimAlpha = 0.22 + Math.sin(time * 0.01) * 0.10;
+            } else if (this.ps.buffs.haste || this.ps.buffs.swiftness || this.ps.buffs.shadowShift) {
+                rimColor = 0x9900ff;
+                rimAlpha = 0.20 + Math.sin(time * 0.01) * 0.08;
+            } else if (this.ps.buffs.soul || this.ps.buffs.archerSoul || this.ps.buffs.keenEyes) {
+                rimColor = 0x00ff88;
+                rimAlpha = 0.18 + Math.sin(time * 0.01) * 0.08;
+            } else if (this.ps.buffs.holyLight || this.ps.buffs.natureBless) {
+                rimColor = 0xffffaa;
+                rimAlpha = 0.20 + Math.sin(time * 0.008) * 0.07;
+            } else if ((this.ps.invincible || 0) > 20) {
+                rimColor = 0xff4444;
+                rimAlpha = 0.18;
+            }
+            if (rimAlpha > 0) {
+                fx.fillStyle(rimColor, rimAlpha * 0.7);
+                fx.fillCircle(bx, by - 25, 30);
+                fx.fillStyle(rimColor, rimAlpha * 0.35);
+                fx.fillCircle(bx, by - 25, 42);
+            }
+        }
+
+        // 3) 레벨업/전직 Glow Burst: 방사형 흰색 원 확장 (levelUpGlowStart 기반)
+        if (this.gs.levelUpGlowStart > 0 && this.fxLayer) {
+            const elapsed = time - this.gs.levelUpGlowStart;
+            const dur = this.gs.levelUpGlowDur;
+            if (elapsed < dur) {
+                const t = elapsed / dur;
+                const r = t * 90;
+                const alpha = (1 - t) * 0.85;
+                this.fxLayer.fillStyle(0xffffff, alpha * 0.6);
+                this.fxLayer.fillCircle(bx, by - 25, r);
+                this.fxLayer.fillStyle(0xffffaa, alpha * 0.3);
+                this.fxLayer.fillCircle(bx, by - 25, r * 0.6);
+            } else {
+                this.gs.levelUpGlowStart = 0;
+            }
         }
     }
 
@@ -1426,6 +1971,14 @@ export default class GameScene extends Phaser.Scene {
                 const ey = y - r * 0.3;
                 g.fillStyle(0xffffff, inv * 0.8);
                 g.fillCircle(ex, ey, 5 * inv);
+                // ADD glow: white spark at hit tip
+                if (p > 0.6 && this.fxLayer) {
+                    const glowAlpha = (p - 0.6) / 0.4;
+                    this.fxLayer.fillStyle(0xffffff, glowAlpha * 0.6);
+                    this.fxLayer.fillCircle(ex, ey, 10);
+                    this.fxLayer.fillStyle(0xffeedd, glowAlpha * 0.4);
+                    this.fxLayer.fillCircle(ex, ey, 18);
+                }
                 break;
             }
             case 'daggerSlash': {
@@ -1467,6 +2020,13 @@ export default class GameScene extends Phaser.Scene {
                 g.strokeCircle(tx, y, sz * 0.7);
                 g.fillStyle(0xffffff, 0.9 * inv * inv);
                 g.fillCircle(tx, y, 12 * inv);
+                // ADD glow: orange explosion core
+                if (this.fxLayer) {
+                    this.fxLayer.fillStyle(0xff8800, inv * 0.8);
+                    this.fxLayer.fillCircle(tx, y, 20 * inv);
+                    this.fxLayer.fillStyle(0xffffff, inv * inv * 0.6);
+                    this.fxLayer.fillCircle(tx, y, 8 * inv);
+                }
                 break;
             }
             case 'slashBlast': {
@@ -1489,6 +2049,14 @@ export default class GameScene extends Phaser.Scene {
                     const sl = r4 * 0.85;
                     g.fillStyle(0x8899ff, inv * 0.7);
                     g.fillCircle(x + Math.cos(sa) * sl, y + Math.sin(sa) * sl * 0.6, 4 * inv);
+                }
+                // ADD glow: blue inner core
+                if (this.fxLayer && p < 0.5) {
+                    const cf2 = 1 - p / 0.5;
+                    this.fxLayer.fillStyle(0x4488ff, cf2 * 0.7);
+                    this.fxLayer.fillCircle(x, y, r4 * 0.35);
+                    this.fxLayer.fillStyle(0xaaccff, cf2 * 0.4);
+                    this.fxLayer.fillCircle(x, y, r4 * 0.15);
                 }
                 break;
             }
@@ -1523,6 +2091,13 @@ export default class GameScene extends Phaser.Scene {
                 g.lineBetween(x, y - 45, x + dir * 85 * p, y + 18);
                 g.fillStyle(0xaa00cc, inv * 0.45);
                 g.fillCircle(x, y, 20 * inv);
+                // ADD glow: purple assassin core
+                if (this.fxLayer) {
+                    this.fxLayer.fillStyle(0xcc00ff, inv * 0.7);
+                    this.fxLayer.fillCircle(x, y, 14 * inv);
+                    this.fxLayer.fillStyle(0xff88ff, inv * inv * 0.5);
+                    this.fxLayer.fillCircle(x, y, 6 * inv);
+                }
                 break;
             }
             case 'doubleShot': {
@@ -1539,9 +2114,14 @@ export default class GameScene extends Phaser.Scene {
                 break;
             }
             case 'arrowRain': {
-                for (let k = 0; k < 14; k++) {
-                    const ax = e.x - 220 + k * 34;
-                    const ay = 40 + p * 420;
+                const laneCount = e.laneCount || 15;
+                const startX = e.startX ?? (e.x - 200);
+                const width = e.width || 400;
+                const topY = e.topY ?? 40;
+                const impactY = e.impactY ?? 520;
+                const ay = topY + p * (impactY - topY);
+                for (let k = 0; k < laneCount; k++) {
+                    const ax = startX + ((k + 0.5) / laneCount) * width;
                     const a  = (1 - p) * 0.9;
                     g.lineStyle(2, 0xffcc44, a);
                     g.lineBetween(ax, ay - 34, ax, ay);
@@ -1553,19 +2133,42 @@ export default class GameScene extends Phaser.Scene {
                 break;
             }
             case 'tripleShot': {
-                const angles = [-0.25, 0, 0.25];
-                angles.forEach(ang => {
-                    const al3 = 30 + p * 30;
-                    const ex2 = x + dir * Math.cos(ang) * al3;
-                    const ey2 = y + Math.sin(ang) * al3;
-                    g.lineStyle(3 * inv, 0xffcc44, inv);
+                const angles = [-0.28, 0, 0.28];
+                const coreLen = 36 + p * 38;
+                angles.forEach((ang, idx) => {
+                    const ex2 = x + dir * Math.cos(ang) * coreLen;
+                    const ey2 = y + Math.sin(ang) * coreLen;
+                    const laneAlpha = inv * (idx === 1 ? 1 : 0.85);
+                    g.lineStyle(4 * laneAlpha, 0xffd766, laneAlpha);
                     g.lineBetween(x, y, ex2, ey2);
-                    g.fillStyle(0xffee88, inv);
-                    const nx = (ex2 - x) / al3;
-                    const ny = (ey2 - y) / al3;
-                    g.fillTriangle(ex2, ey2, ex2 - nx * 8 - ny * 4, ey2 - ny * 8 + nx * 4,
-                                              ex2 - nx * 8 + ny * 4, ey2 - ny * 8 - nx * 4);
+                    g.lineStyle(2 * laneAlpha, 0xfff4b0, laneAlpha * 0.85);
+                    g.lineBetween(x + dir * 4, y, ex2 + dir * 4, ey2);
+                    const nx = (ex2 - x) / coreLen;
+                    const ny = (ey2 - y) / coreLen;
+                    g.fillStyle(0xfff0a8, laneAlpha);
+                    g.fillTriangle(ex2, ey2, ex2 - nx * 10 - ny * 5, ey2 - ny * 10 + nx * 5,
+                                              ex2 - nx * 10 + ny * 5, ey2 - ny * 10 - nx * 5);
                 });
+                g.lineStyle(2 * inv, 0xffe899, inv * 0.6);
+                g.strokeCircle(x, y, 8 + p * 18);
+                if (this.fxLayer) {
+                    this.fxLayer.fillStyle(0xffcc66, inv * 0.6);
+                    this.fxLayer.fillCircle(x + dir * 8, y, 12 * inv);
+                    this.fxLayer.fillStyle(0xffffff, inv * inv * 0.55);
+                    this.fxLayer.fillCircle(x + dir * 11, y, 5 * inv);
+                }
+                break;
+            }
+            case 'arrowRainImpact': {
+                const ir = 12 + p * 28;
+                g.fillStyle(0xffaa33, (1 - p) * 0.45);
+                g.fillCircle(x, y, ir);
+                g.lineStyle(3 * inv, 0xffdd66, inv);
+                g.strokeCircle(x, y, ir * 1.1);
+                if (this.fxLayer) {
+                    this.fxLayer.fillStyle(0xffeeaa, inv * 0.6);
+                    this.fxLayer.fillCircle(x, y, ir * 0.55);
+                }
                 break;
             }
             case 'explosion': {
@@ -1578,6 +2181,13 @@ export default class GameScene extends Phaser.Scene {
                 g.fillCircle(x, y, er * 0.35);
                 g.lineStyle(3 * inv, 0xff8800, 0.6 * inv);
                 g.strokeCircle(x, y, er * 1.2);
+                // ADD glow: white hot core
+                if (this.fxLayer) {
+                    this.fxLayer.fillStyle(0xffffff, inv * inv * 0.9);
+                    this.fxLayer.fillCircle(x, y, er * 0.25);
+                    this.fxLayer.fillStyle(0xffaa44, inv * 0.6);
+                    this.fxLayer.fillCircle(x, y, er * 0.5);
+                }
                 break;
             }
             case 'rageActivate': {
@@ -1796,4 +2406,5 @@ export default class GameScene extends Phaser.Scene {
         g.strokeRoundedRect(350, 200, 300, 200, 16);
     }
 }
+
 

@@ -149,6 +149,30 @@
       inset: 0;
       pointer-events: none;
     }
+    #hud-vignette-top,
+    #hud-vignette-bottom {
+      position: absolute;
+      left: 0;
+      width: 100%;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+    #hud-vignette-top {
+      top: 0;
+      height: 180px;
+      background: linear-gradient(180deg, rgba(4,6,16,0.6) 0%, rgba(4,6,16,0) 100%);
+      opacity: 0.75;
+    }
+    #hud-vignette-bottom {
+      bottom: 0;
+      height: 160px;
+      background: linear-gradient(0deg, rgba(4,6,16,0.66) 0%, rgba(4,6,16,0) 100%);
+      opacity: 0.8;
+    }
+    #hud.hud-high-contrast #hud-vignette-top,
+    #hud.hud-high-contrast #hud-vignette-bottom {
+      opacity: 1;
+    }
 
     /* 醫뚯긽?? HP/MP/EXP + ?ㅽ꺈 */
     #hud-topleft {
@@ -411,6 +435,9 @@
 
       <!-- ??? HUD ??? -->
       <div id="hud">
+        <div id="hud-vignette-top"></div>
+        <div id="hud-vignette-bottom"></div>
+
         <!-- 醫뚯긽?? HP / MP / EXP + ?ㅽ꺈 -->
         <div id="hud-topleft">
           <div id="hud-level">Lv.1 ⚔️ 전사</div>
@@ -547,6 +574,14 @@
       return SKILL_LABELS[skill.type] || SKILL_LABELS[skill.buff] || skill.name || '스킬';
     }
 
+    function emitBackgroundProfileChange() {
+      window.dispatchEvent(new CustomEvent('backgroundProfileChange', { detail: {
+        quality: 'high',
+        theme: 'dusk_forest',
+        ambienceEnabled: true,
+      }}));
+    }
+
     // hex ??rgba ?ы띁
     function hexToRgba(hex, a) {
       const r = parseInt(hex.slice(1,3), 16);
@@ -607,6 +642,7 @@
       const d    = e.detail;
       const job  = JOBS[d.job];
       const tierName = (TIER_LABELS[d.job] && TIER_LABELS[d.job][d.tier]) || JOB_LABELS[d.job];
+      const hudRoot = document.getElementById('hud');
 
       // ?덈꺼/吏곸뾽
       document.getElementById('hud-level').textContent = `Lv.${d.level} ${JOB_ICONS[d.job] || ''} ${tierName}`;
@@ -694,6 +730,9 @@
 
       // ?쇱떆?뺤?
       document.getElementById('pause-overlay').style.display = d.paused ? 'flex' : 'none';
+
+      const needsHighContrast = d.combo >= 20 || (d.hp / d.maxHp) <= 0.3;
+      hudRoot.classList.toggle('hud-high-contrast', needsHighContrast);
     });
 
     // ?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧
@@ -742,6 +781,35 @@
         window.dispatchEvent(new CustomEvent('gameChangeJob'));
       }
     });
+
+    window.addEventListener('jobSelected', () => setTimeout(emitBackgroundProfileChange, 0));
+    window.addEventListener('gameRestart', () => setTimeout(emitBackgroundProfileChange, 0));
+
+    function sendCheat(command, value) {
+      window.dispatchEvent(new CustomEvent('mqCheatCommand', { detail: { command, value } }));
+    }
+
+    window.mqCheat = {
+      help() {
+        console.log('[mqCheat] setLevel(level), setMeso(amount), addMeso(amount), heal(), godMode(on)');
+      },
+      setLevel(level) { sendCheat('setLevel', level); },
+      setMeso(amount) { sendCheat('setMeso', amount); },
+      addMeso(amount) { sendCheat('addMeso', amount); },
+      heal() { sendCheat('heal', true); },
+      godMode(on = true) { sendCheat('godMode', !!on); },
+    };
+
+    // Quick aliases
+    window.setLevel = (level) => window.mqCheat.setLevel(level);
+    window.setMeso = (amount) => window.mqCheat.setMeso(amount);
+    window.addMeso = (amount) => window.mqCheat.addMeso(amount);
+    window.heal = () => window.mqCheat.heal();
+    window.godMode = (on = true) => window.mqCheat.godMode(on);
+
+    console.log('[Cheat] Console commands ready: setLevel, setMeso, addMeso, heal, godMode');
+
+    emitBackgroundProfileChange();
   </script>
 </body>
 </html>

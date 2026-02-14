@@ -20,7 +20,8 @@ export default class BootScene extends Phaser.Scene {
         const idleBob    = isIdle ? Math.sin((frame / 4) * Math.PI * 2) * 1 : 0;
         const jumpLift   = isJump ? (frame === 0 ? -4 : -9) : 0;
         const legBend    = isJump ? (frame === 0 ? 4 : -2) : 0;
-        const atkPush    = isAttack && frame >= 2 ? 5 : (isAttack && frame < 2 ? -2 : 0);
+        // Per-frame body lunge: wind-up back → overhead neutral → HIT forward → recovery
+        const atkPush    = isAttack ? [-3, 0, 7, 4][frame] : 0;
 
         const feetY    = gy + jumpLift + idleBob;
         const kneeY    = feetY - 12;
@@ -102,9 +103,24 @@ export default class BootScene extends Phaser.Scene {
 
         // ── Arms ──
         g.fillStyle(P.skin, 1);
-        if (isAttack && frame >= 2) {
-            g.fillRect(bx + 10, shoulderY + 3, 7, 5); // right arm extended
-            g.fillRect(bx - 16, shoulderY + 5, 6, 8); // left arm back
+        if (isAttack) {
+            if (frame === 0) {
+                // Wind-up: right arm raised, pulling weapon back
+                g.fillRect(bx + 6,  shoulderY - 6, 5, 8);  // right arm up
+                g.fillRect(bx - 13, shoulderY + 5, 5, 7);  // left arm balance
+            } else if (frame === 1) {
+                // Overhead: both arms raising weapon above head
+                g.fillRect(bx + 4,  shoulderY - 10, 6, 7); // right arm high
+                g.fillRect(bx - 9,  shoulderY - 5,  5, 7); // left arm rising
+            } else if (frame === 2) {
+                // HIT: arms driving weapon forward hard
+                g.fillRect(bx + 13, shoulderY + 2, 9, 5);  // right arm extended
+                g.fillRect(bx - 16, shoulderY + 5, 6, 8);  // left arm back
+            } else {
+                // Recovery: arms returning from swing
+                g.fillRect(bx + 10, shoulderY + 4, 7, 5);  // right arm lowering
+                g.fillRect(bx - 14, shoulderY + 5, 5, 7);  // left arm recovering
+            }
         } else if (isWalk) {
             g.fillRect(bx - 15 + armSwing, shoulderY + 4, 5, 9);
             g.fillRect(bx + 10 - armSwing, shoulderY + 4, 5, 9);
@@ -149,15 +165,46 @@ export default class BootScene extends Phaser.Scene {
             // Cape
             g.fillStyle(P.cape, 0.85);
             g.fillTriangle(bx - 11, shoulderY, bx - 17, hipY + 4, bx - 4, shoulderY + 18);
-            // Sword
-            if (isAttack && frame >= 2) {
-                const sx = bx + 20;
-                g.fillStyle(P.armorDk, 1);
-                g.fillRect(sx - 1, shoulderY - 5, 4, 4); // crossguard
-                g.fillStyle(P.weapon, 1);
-                g.fillRect(sx, shoulderY - 32, 2, 28); // blade
-                g.fillStyle(P.shine, 1);
-                g.fillRect(sx, shoulderY - 32, 1, 28); // shine
+            // Sword — per-frame attack animation (cx=40 for 80px texture)
+            if (isAttack) {
+                if (frame === 0) {
+                    // Wind-up: sword raised and tilted back (behind shoulder)
+                    g.fillStyle(P.armorDk, 1);
+                    g.fillRect(bx + 4, shoulderY - 6, 5, 4);      // crossguard
+                    g.lineStyle(3, P.weapon, 1);
+                    g.lineBetween(bx + 6, shoulderY - 2, bx - 4, shoulderY - 34); // blade back-up
+                    g.lineStyle(1, P.shine, 0.85);
+                    g.lineBetween(bx + 6, shoulderY - 2, bx - 4, shoulderY - 34);
+                } else if (frame === 1) {
+                    // Overhead: sword pointing straight up
+                    g.fillStyle(P.armorDk, 1);
+                    g.fillRect(bx - 3, shoulderY - 8, 7, 4);       // crossguard (horizontal at top)
+                    g.lineStyle(3, P.weapon, 1);
+                    g.lineBetween(bx + 1, shoulderY - 4, bx + 1, shoulderY - 42); // blade up
+                    g.lineStyle(1, P.shine, 0.85);
+                    g.lineBetween(bx + 1, shoulderY - 4, bx + 1, shoulderY - 42);
+                } else if (frame === 2) {
+                    // HIT: diagonal slash forward-down (full swing impact)
+                    const sx = bx + 10;
+                    g.fillStyle(P.armorDk, 1);
+                    g.fillRect(sx - 4, shoulderY - 4, 8, 4);       // horizontal crossguard
+                    g.lineStyle(4, P.weapon, 1);
+                    g.lineBetween(sx, shoulderY, sx + 22, shoulderY + 24); // diagonal blade
+                    g.lineStyle(1, P.shine, 0.9);
+                    g.lineBetween(sx, shoulderY, sx + 22, shoulderY + 24);
+                    // Sword tip bright dot (impact!)
+                    g.fillStyle(P.shine, 0.9);
+                    g.fillCircle(sx + 22, shoulderY + 24, 2);
+                } else {
+                    // Recovery: sword extended forward-down (follow-through)
+                    const sx = bx + 14;
+                    g.fillStyle(P.armorDk, 1);
+                    g.fillRect(sx - 2, shoulderY + 3, 5, 4);       // crossguard
+                    g.lineStyle(3, P.weapon, 1);
+                    g.lineBetween(sx, shoulderY + 7, sx + 14, shoulderY + 28); // blade low
+                    g.lineStyle(1, P.shine, 0.85);
+                    g.lineBetween(sx, shoulderY + 7, sx + 14, shoulderY + 28);
+                }
             } else {
                 g.fillStyle(P.armorDk, 1);
                 g.fillRect(bx + 11, shoulderY - 2, 5, 4); // crossguard
@@ -181,13 +228,41 @@ export default class BootScene extends Phaser.Scene {
             // Cape
             g.fillStyle(P.cape, 0.8);
             g.fillTriangle(bx - 11, shoulderY, bx - 16, hipY + 5, bx - 3, shoulderY + 18);
-            // Daggers
-            if (isAttack && frame >= 2) {
-                g.fillStyle(P.weapon, 1);
-                g.fillRect(bx + 10, shoulderY - 6, 2, 18);
-                g.fillRect(bx + 14, shoulderY - 4, 2, 16);
-                g.fillStyle(P.shine, 1);
-                g.fillRect(bx + 10, shoulderY - 6, 1, 18);
+            // Daggers — per-frame attack animation
+            if (isAttack) {
+                if (frame === 0) {
+                    // Wind-up: daggers pulled back to body
+                    g.fillStyle(P.weapon, 1);
+                    g.fillRect(bx + 8,  shoulderY + 6, 2, 14); // right at side
+                    g.fillRect(bx - 10, shoulderY + 8, 2, 12); // left at side
+                    g.fillStyle(P.shine, 1);
+                    g.fillRect(bx + 8,  shoulderY + 6, 1, 14);
+                } else if (frame === 1) {
+                    // Wind-up 2: daggers raised, coiling for thrust
+                    g.fillStyle(P.weapon, 1);
+                    g.fillRect(bx + 8,  shoulderY,     2, 14); // right raised
+                    g.fillRect(bx - 9,  shoulderY + 2, 2, 13); // left raised
+                    g.fillStyle(P.shine, 1);
+                    g.fillRect(bx + 8,  shoulderY,     1, 14);
+                } else if (frame === 2) {
+                    // HIT: daggers THRUST forward horizontally (stab!)
+                    g.fillStyle(P.weapon, 1);
+                    g.fillRect(bx + 10, shoulderY,     22, 2); // main horizontal blade
+                    g.fillRect(bx + 10, shoulderY + 8, 20, 2); // second blade
+                    g.fillStyle(P.armorDk, 1);
+                    g.fillRect(bx + 10, shoulderY - 3, 4, 7);  // crossguard 1
+                    g.fillRect(bx + 10, shoulderY + 5, 4, 7);  // crossguard 2
+                    g.fillStyle(P.shine, 1);
+                    g.fillRect(bx + 14, shoulderY,     18, 1); // blade shine
+                    g.fillRect(bx + 14, shoulderY + 8, 16, 1);
+                } else {
+                    // Recovery: daggers withdrawing
+                    g.fillStyle(P.weapon, 1);
+                    g.fillRect(bx + 10, shoulderY + 2,  14, 2); // partially retracted
+                    g.fillRect(bx + 10, shoulderY + 10, 12, 2);
+                    g.fillStyle(P.shine, 1);
+                    g.fillRect(bx + 12, shoulderY + 2,  10, 1);
+                }
             } else {
                 g.fillStyle(P.weapon, 1);
                 g.fillRect(bx + 10, shoulderY + 8, 2, 12);
@@ -208,24 +283,52 @@ export default class BootScene extends Phaser.Scene {
             g.fillStyle(P.shine, 1);
             g.fillRect(bx - 15, shoulderY, 2, 4); // arrow feather
             g.fillRect(bx - 13, shoulderY + 1, 2, 4);
-            // Bow
+            // Bow — per-frame attack animation
             const bowX = bx + 13;
             g.lineStyle(3, P.weapon, 1);
             g.beginPath();
-            g.arc(bowX, shoulderY + 8, 13, -0.9, 0.9, false);
+            if (isAttack && frame === 2) {
+                // Fully drawn: bow bends more
+                g.arc(bowX, shoulderY + 8, 15, -1.0, 1.0, false);
+            } else {
+                g.arc(bowX, shoulderY + 8, 13, -0.9, 0.9, false);
+            }
             g.strokePath();
             // Bow grip
             g.fillStyle(P.armorDk, 1);
             g.fillRect(bowX - 2, shoulderY + 4, 4, 8);
-            if (isAttack && frame >= 2) {
-                // Drawn bow: string pulled back
-                g.lineStyle(1, 0xdddddd, 0.9);
-                g.lineBetween(bowX + 12, shoulderY - 4, bowX - 3, shoulderY + 8);
-                g.lineBetween(bowX - 3, shoulderY + 8, bowX + 12, shoulderY + 20);
-                // Arrow nocked
-                g.fillStyle(0xffcc44, 1);
-                g.fillRect(bowX - 8, shoulderY + 6, 14, 2);
-                g.fillTriangle(bowX + 6, shoulderY + 7, bowX + 11, shoulderY + 5, bowX + 11, shoulderY + 9);
+
+            if (isAttack) {
+                if (frame === 0) {
+                    // Wind-up: bow raised slightly, no arrow yet
+                    g.lineStyle(1, 0xcccccc, 0.6);
+                    g.lineBetween(bowX + 12, shoulderY - 4, bowX + 12, shoulderY + 20); // slack string
+                } else if (frame === 1) {
+                    // Nocking: arrow appears, string slightly drawn
+                    g.lineStyle(1, 0xdddddd, 0.85);
+                    g.lineBetween(bowX + 12, shoulderY - 4, bowX + 5, shoulderY + 8);   // string half-drawn
+                    g.lineBetween(bowX + 5, shoulderY + 8, bowX + 12, shoulderY + 20);
+                    // Arrow nocked (partially drawn back)
+                    g.fillStyle(0xffcc44, 1);
+                    g.fillRect(bowX - 2, shoulderY + 6, 12, 2);
+                    g.fillTriangle(bowX + 10, shoulderY + 7, bowX + 14, shoulderY + 5, bowX + 14, shoulderY + 9);
+                } else if (frame === 2) {
+                    // FULL DRAW: string pulled way back, arrow at max tension
+                    g.lineStyle(1, 0xffffff, 0.95);
+                    g.lineBetween(bowX + 14, shoulderY - 6, bowX - 5, shoulderY + 8);   // string pulled far
+                    g.lineBetween(bowX - 5, shoulderY + 8, bowX + 14, shoulderY + 22);
+                    // Arrow fully drawn, glowing with energy
+                    g.fillStyle(0xffcc44, 1);
+                    g.fillRect(bowX - 10, shoulderY + 6, 18, 2);
+                    g.fillTriangle(bowX + 8, shoulderY + 7, bowX + 14, shoulderY + 5, bowX + 14, shoulderY + 9);
+                    g.fillStyle(0xffee88, 0.7);
+                    g.fillRect(bowX - 10, shoulderY + 6, 18, 1); // arrow gleam
+                } else {
+                    // Release: string snapping back (arrow gone), bow recoil
+                    g.lineStyle(2, 0xcccccc, 0.5);
+                    g.lineBetween(bowX + 11, shoulderY - 3, bowX + 13, shoulderY + 8);  // string vibrating
+                    g.lineBetween(bowX + 13, shoulderY + 8, bowX + 11, shoulderY + 19);
+                }
             } else {
                 g.lineStyle(1, 0xcccccc, 0.8);
                 g.lineBetween(bowX + 12, shoulderY - 4, bowX + 12, shoulderY + 20);
@@ -450,7 +553,7 @@ export default class BootScene extends Phaser.Scene {
         const jobAnims = [
             { name: 'idle',   frames: 4, w: 48, h: 64, frameRate: 5 },
             { name: 'walk',   frames: 6, w: 48, h: 64, frameRate: 12 },
-            { name: 'attack', frames: 4, w: 48, h: 64, frameRate: 16, repeat: 0 },
+            { name: 'attack', frames: 4, w: 80, h: 64, frameRate: 16, repeat: 0 },
             { name: 'jump',   frames: 2, w: 48, h: 64, frameRate: 6,  repeat: 0 },
         ];
 
@@ -465,12 +568,32 @@ export default class BootScene extends Phaser.Scene {
                 }
                 const animKey = `anim_${job}_${anim.name}`;
                 if (!this.anims.exists(animKey)) {
-                    this.anims.create({
-                        key: animKey,
-                        frames: Array.from({ length: anim.frames }, (_, i) => ({ key: `${job}_${anim.name}_${i}` })),
-                        frameRate: anim.frameRate,
-                        repeat: anim.repeat ?? -1,
-                    });
+                    if (anim.name === 'attack') {
+                        // 직업별 공격 타이밍: 윈드업(느림) → HIT(순간) → 리커버리(느림)
+                        // HitStop이 frame2 진입 시 60ms 정지를 담당 → frame2 자체는 매우 짧게
+                        const atkDur = {
+                            warrior: [90, 80, 20, 200],  // 묵직한 검 (총 390ms)
+                            thief:   [50, 40, 15, 80],   // 빠른 단검 (총 185ms)
+                            archer:  [70, 60, 20, 130],  // 활 당기기-발사 (총 280ms)
+                        }[job] || [80, 70, 20, 180];
+                        this.anims.create({
+                            key: animKey,
+                            frames: [
+                                { key: `${job}_attack_0`, duration: atkDur[0] },  // 윈드업 1 (느림)
+                                { key: `${job}_attack_1`, duration: atkDur[1] },  // 윈드업 2 (중간)
+                                { key: `${job}_attack_2`, duration: atkDur[2] },  // HIT (순간)
+                                { key: `${job}_attack_3`, duration: atkDur[3] },  // 리커버리 (느림)
+                            ],
+                            repeat: 0,
+                        });
+                    } else {
+                        this.anims.create({
+                            key: animKey,
+                            frames: Array.from({ length: anim.frames }, (_, i) => ({ key: `${job}_${anim.name}_${i}` })),
+                            frameRate: anim.frameRate,
+                            repeat: anim.repeat ?? -1,
+                        });
+                    }
                 }
             }
         }
@@ -510,6 +633,22 @@ export default class BootScene extends Phaser.Scene {
         g.fillRect(0, 0, 1, 1);
         g.generateTexture('pixel', 1, 1);
         g.destroy();
+
+        if (!this.textures.exists('fog_strip')) {
+            const fog = this.add.graphics();
+            fog.fillGradientStyle(0xffffff, 0xffffff, 0xffffff, 0xffffff, 1);
+            fog.fillRoundedRect(0, 0, 128, 24, 12);
+            fog.generateTexture('fog_strip', 128, 24);
+            fog.destroy();
+        }
+
+        if (!this.textures.exists('noise_dot')) {
+            const dot = this.add.graphics();
+            dot.fillStyle(0xffffff, 1);
+            dot.fillCircle(2, 2, 2);
+            dot.generateTexture('noise_dot', 4, 4);
+            dot.destroy();
+        }
 
         this.createSpriteTexturesAndAnims();
 
