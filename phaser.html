@@ -719,9 +719,9 @@
         slot.className = 'skill-slot' + (isReady ? ' ready' : '');
 
         if (skill) {
-          // 키 라벨: skill.key가 있으면 그걸 사용 (도적 A슬롯 등)
+          // 키 라벨: skill.key 우선, 없으면 기본값 Z/X/C
           const keyEl = slot.querySelector('.skill-key');
-          if (keyEl && skill.key) keyEl.textContent = skill.key;
+          if (keyEl) keyEl.textContent = skill.key || ['Z','X','C'][i];
 
           document.getElementById(`skill-icon-${i}`).textContent = isReady ? (skill.icon || '?') : '';
           const label = getSkillLabel(skill);

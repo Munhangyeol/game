@@ -39,7 +39,8 @@
       "Bash(\"C:/claude-code/game/_tmp_float.js\":*)",
       "Bash(\"C:/claude-code/game/_fix_chat.py\":*)",
       "Bash(python:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(git checkout:*)"
     ]
   }
 }
