@@ -35,7 +35,11 @@
       "Bash(ls \"C:\\\\claude-code\\\\game\\\\src\\\\entities\"\" && echo \"---\" && ls \"C:claude-codegamesrcsystems\"\")",
       "Bash(python server.py:*)",
       "Bash(python -c:*)",
-      "Bash(del \"C:\\\\claude-code\\\\game\\\\src\\\\phaser\\\\scenes\\\\JobSelectScene.js\" \"C:\\\\claude-code\\\\game\\\\src\\\\phaser\\\\scenes\\\\HUDScene.js\" \"C:\\\\claude-code\\\\game\\\\src\\\\phaser\\\\scenes\\\\GameOverScene.js\")"
+      "Bash(del \"C:\\\\claude-code\\\\game\\\\src\\\\phaser\\\\scenes\\\\JobSelectScene.js\" \"C:\\\\claude-code\\\\game\\\\src\\\\phaser\\\\scenes\\\\HUDScene.js\" \"C:\\\\claude-code\\\\game\\\\src\\\\phaser\\\\scenes\\\\GameOverScene.js\")",
+      "Bash(\"C:/claude-code/game/_tmp_float.js\":*)",
+      "Bash(\"C:/claude-code/game/_fix_chat.py\":*)",
+      "Bash(python:*)",
+      "Bash(python3:*)"
     ]
   }
 }

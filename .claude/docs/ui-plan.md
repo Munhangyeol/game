@@ -856,3 +856,98 @@ cave: {
 |------|-----------|
 | `src/phaser/rendering/ParallaxBackgroundSystem.js` | 구름·nearObjects·Depth Blur·새 테마·Canopy Motion |
 | `src/phaser/rendering/AmbienceFxSystem.js` | Color Grading Overlay |
+
+---
+
+## Phase 9 — 몬스터 연출 품질 향상
+
+### 현재 구현 상태 (GameScene.js 기준)
+
+| 기능 | 현재 상태 |
+|------|---------|
+| Idle bounce | ✅ sin(animFrame)*3 세로 부유 |
+| Hit Flash | ✅ White→Red→Clear (110ms) |
+| Invincible blink | ✅ 3프레임 주기 깜빡임 |
+| HitStop | ✅ 4프레임 (~66ms) |
+| Death fade | ✅ alpha+y Tween (400ms) |
+| 보스 SlowMo | ✅ timeScale=0.2, 300ms |
+| Camera shake | ✅ 150ms / 0.012 |
+| **몬스터 노크백** | ✅ dealDamage() vx 충격 (Phase 9) |
+| **공격 Windup** | ✅ 30프레임 예고 → 20프레임 판정 (Phase 9) |
+| **Squash & Stretch** | ✅ 피격 시 1.3/0.75 → Tween 복귀 (Phase 9) |
+| **숨쉬기 / 눈 깜빡임** | ✅ scaleY 맥박 / 3~6초 간격 (Phase 9) |
+| **몬스터별 사망 파티클** | ✅ 타입별 색상·수 + Death Spin (Phase 9) |
+| **실루엣 가독성** | ✅ stump 팔·rockWhale 등지느러미·dragon 꼬리 (Phase 9) |
+
+---
+
+### A. 몬스터 Hit Reaction 강화 ⭐⭐⭐
+
+**구현 내용**:
+- **노크백**: `dealDamage()` 내 `m.vx += (m.x > px ? 1 : -1) * 5`
+- **Squash & Stretch**: `m.sprite.setScale(1.3, 0.75)` → 80ms Tween 복귀, `isSquashing` 플래그로 숨쉬기 충돌 방지
+- **animFrame 위상 점프**: `m.animFrame += Math.PI` → 순간 위로 튀어오름
+
+구현 위치: `dealDamage()` 함수
+
+---
+
+### B. Idle Breathing Motion ⭐⭐
+
+**구현 내용**:
+- **몸 숨쉬기**: `updateMonsterSprite()` 내 `scaleY = 1.0 + 0.04 * sin(animFrame * 0.4)` — isSquashing 시 건너뜀
+- **눈 깜빡임**: `m.blinkTimer` (3~6초 간격, 0.1초 지속), `drawMonsterOverlays()` 에서 눈 위치에 얇은 수평 바 오버레이
+
+구현 위치: `updateMonsterSprite()` + `updateMonsters()` blinkTimer + `drawMonsterOverlays()` 눈 오버레이
+
+---
+
+### C. 공격 Windup (Telegraph) ⭐⭐⭐
+
+**구현 내용**:
+- `m.attackCooldown` (90프레임 = 1.5초), `m.windup` (30프레임 카운트다운), `m.attacking` (20프레임 판정 구간)
+- **Windup 시각**: `drawMonsterOverlays()` 에서 빨간 원형 아우라 + 반투명 fill (진행도에 따라 강도 증가)
+- **판정 구조**: inRange + cooldown=0 → windup 시작 → windup 종료 시 attacking=20 → 1회 데미지 후 cooldown 리셋
+
+구현 위치: `updateMonsters()` AI 섹션 + `drawMonsterOverlays()` 아우라
+
+---
+
+### D. 사망 연출 강화 ⭐⭐
+
+**구현 내용**:
+- **몬스터 타입별 파티클**:
+  - slime → 초록 `0x44ff44` 8개
+  - mushroom → 빨강 `0xff4422` 10개
+  - stump → 갈색 `0xaa7744` 8개
+  - fireBug → 주황 `0xff6600` 12개
+  - rockWhale → 회색 `0x8899aa` 15개
+  - dragon → 보라 `0x8844ff` 20개
+- **Death Spin**: Tween에 `angle: 360` 추가 (300ms 회전)
+
+구현 위치: `dealDamage()` 사망 처리 구간
+
+---
+
+### E. 몬스터 실루엣 가독성 ⭐
+
+**구현 내용** (`drawMonsterOverlays()` 에 타입별 오버레이 추가):
+- **stump**: 좌우 팔 직사각형 2개
+- **rockWhale**: 등지느러미 삼각형 (bounce 연동)
+- **dragon**: 이동 방향 반대쪽 꼬리 삼각형
+
+구현 위치: `drawMonsterOverlays()` 함수
+
+---
+
+### Phase 9 구현 파일
+
+| 파일 | 수정 항목 |
+|------|-----------|
+| `src/phaser/scenes/GameScene.js` | 모든 항목 (A~E) |
+
+- `dealDamage()` — Hit Reaction(A), 사망 연출(D)
+- `updateMonsters()` — Windup AI(C), blinkTimer(B)
+- `updateMonsterSprite()` — 숨쉬기(B)
+- `drawMonsterOverlays()` — Windup 아우라(C), 눈 깜빡임(B), 실루엣(E)
+- `spawnMonster()` — 신규 필드(attackCooldown, windup, attacking, blinkTimer, blinkOn, isSquashing)

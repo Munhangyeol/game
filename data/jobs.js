@@ -76,13 +76,13 @@ export const JOBS = {
             { level: 30, hp: 150, mp: 60 },  // 재변직 (어쌔신)
             { level: 70, hp: 300, mp: 120 }  // 최종변직 (나이트로드)
         ],
-        basicAttack: { damage: 0.4, range: 50, type: 'dagger', hits: 2, cooldown: 10, animDuration: 185 },
+        basicAttack: { damage: 0.4, range: 50, type: 'dagger', hits: 2, cooldown: 10, animDuration: 185, comboFinisherMult: 2.5 },
         tiers: [
             {
                 name: '도적',
                 icon: '🗡️',
+                basicAttack: { damage: 0.40, range: 50, hits: 2, cooldown: 10, comboFinisherMult: 2.5 },
                 skills: [
-                    { name: '삼중 스탭', key: 'Z', mp: 5, cooldown: 35, damage: 1.4, hits: 3, type: 'doubleStab', icon: '⚡' },
                     { name: '어쌔시네이트', key: 'X', mp: 12, cooldown: 120, damage: 4.5, type: 'assassinate', backstab: true, icon: '💀' },
                     { name: '헤이스트', key: 'C', mp: 10, cooldown: 480, duration: 600, buff: 'haste', speedBonus: 1.5, icon: '💨' }
                 ]
@@ -90,8 +90,8 @@ export const JOBS = {
             {
                 name: '로그',
                 icon: '🗡️✨',
+                basicAttack: { damage: 0.52, range: 56, hits: 2, cooldown: 9, comboFinisherMult: 2.9 },
                 skills: [
-                    { name: '사중 스탭', key: 'Z', mp: 7, cooldown: 40, damage: 1.5, hits: 4, type: 'quadStab', icon: '⚡⚡' },
                     { name: '스텔스 백스탭', key: 'X', mp: 15, cooldown: 130, damage: 5.5, type: 'stealthBackstab', backstab: true, icon: '👤' },
                     { name: '신속', key: 'C', mp: 12, cooldown: 500, duration: 600, buff: 'swiftness', speedBonus: 1.8, evasion: 15, icon: '💨✨' }
                 ]
@@ -99,8 +99,8 @@ export const JOBS = {
             {
                 name: '어쌔신',
                 icon: '💀',
+                basicAttack: { damage: 0.65, range: 63, hits: 3, cooldown: 8, comboFinisherMult: 3.4 },
                 skills: [
-                    { name: '독의 스탭', key: 'Z', mp: 10, cooldown: 45, damage: 1.8, hits: 4, type: 'poisonStab', poison: true, icon: '☠️🗡️' },
                     { name: '치명의 일격', key: 'X', mp: 20, cooldown: 140, damage: 7.0, type: 'deadlyBlow', critBoost: 30, backstabBoost: 3, icon: '💀💥' },
                     { name: '그림자 이동', key: 'C', mp: 15, cooldown: 520, duration: 600, buff: 'shadowShift', evasion: 50, speedBonus: 1.5, icon: '👤💨' }
                 ]
@@ -108,8 +108,8 @@ export const JOBS = {
             {
                 name: '나이트로드',
                 icon: '🌟💀',
+                basicAttack: { damage: 0.80, range: 72, hits: 4, cooldown: 7, comboFinisherMult: 4.2 },
                 skills: [
-                    { name: '백개 단검', key: 'Z', mp: 18, cooldown: 50, damage: 0.8, hits: 10, type: 'hundredDaggers', icon: '🗡️🗡️🗡️' },
                     { name: '영혼의 일격', key: 'X', mp: 30, cooldown: 150, damage: 10.0, type: 'soulStrike', guaranteedCrit: true, icon: '👻💥' },
                     { name: '어둠의 분신', key: 'C', mp: 40, cooldown: 550, duration: 600, buff: 'darkClone', cloneDamage: 0.5, icon: '👥💀' }
                 ]

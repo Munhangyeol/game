@@ -662,6 +662,7 @@
           </div>
         `).join('')}
         <div class="job-skills-title">시작 스킬</div>
+        ${jobId === 'thief' ? `<div class="job-skill-item">🗡️ [A] 강화공격 (5콤보)</div>` : ''}
         ${job.tiers[0].skills.map(s => `
           <div class="job-skill-item">${s.icon || "✨"} [${s.key}] ${getSkillLabel(s)}</div>
         `).join('')}
@@ -718,6 +719,10 @@
         slot.className = 'skill-slot' + (isReady ? ' ready' : '');
 
         if (skill) {
+          // 키 라벨: skill.key가 있으면 그걸 사용 (도적 A슬롯 등)
+          const keyEl = slot.querySelector('.skill-key');
+          if (keyEl && skill.key) keyEl.textContent = skill.key;
+
           document.getElementById(`skill-icon-${i}`).textContent = isReady ? (skill.icon || '?') : '';
           const label = getSkillLabel(skill);
           const nm = label.length > 6 ? label.slice(0, 6) : label;
@@ -725,7 +730,7 @@
 
           const overlay = document.getElementById(`skill-cd-${i}`);
           const cdText  = document.getElementById(`skill-cd-text-${i}`);
-          if (cd > 0) {
+          if (cd > 0 && skill.cooldown > 0) {
             overlay.style.height = (Math.min(1, cd / skill.cooldown) * 100) + '%';
             cdText.textContent   = (cd / 60).toFixed(1);
           } else {
