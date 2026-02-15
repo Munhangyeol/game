@@ -73,12 +73,12 @@ export class ParallaxBackgroundSystem {
         this.windStrength = 1.0;  // 0.1 ~ 1.5, 8초 주기 사인파
 
         this.layers = {
-            sky:         this.scene.add.graphics().setDepth(-20),
-            mountains:   this.scene.add.graphics().setDepth(-16),
-            clouds:      this.scene.add.graphics().setDepth(-14),  // ★ 신규
-            objects:     this.scene.add.graphics().setDepth(-12),
-            frontGrass:  this.scene.add.graphics().setDepth(-6),
-            nearObjects: this.scene.add.graphics().setDepth(-4),   // ★ 신규
+            sky:         this.scene.add.graphics().setDepth(-20).setScrollFactor(0),
+            mountains:   this.scene.add.graphics().setDepth(-16).setScrollFactor(0),
+            clouds:      this.scene.add.graphics().setDepth(-14).setScrollFactor(0),
+            objects:     this.scene.add.graphics().setDepth(-12).setScrollFactor(0),
+            frontGrass:  this.scene.add.graphics().setDepth(-6).setScrollFactor(0),
+            nearObjects: this.scene.add.graphics().setDepth(-4).setScrollFactor(0),
         };
 
         this.generateGeometry();

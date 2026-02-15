@@ -27,10 +27,10 @@ export class AmbienceFxSystem {
         this.time = 0;
 
         this.layers = {
-            fog:    this.scene.add.graphics().setDepth(-10),
-            shafts: this.scene.add.graphics().setDepth(-9),
-            dust:   this.scene.add.graphics().setDepth(9),
-            grade:  this.scene.add.graphics().setDepth(14),
+            fog:    this.scene.add.graphics().setDepth(-10).setScrollFactor(0),
+            shafts: this.scene.add.graphics().setDepth(-9).setScrollFactor(0),
+            dust:   this.scene.add.graphics().setDepth(9).setScrollFactor(0),
+            grade:  this.scene.add.graphics().setDepth(14).setScrollFactor(0),
         };
         this.layers.dust.setBlendMode(Phaser.BlendModes.ADD);
         this.layers.grade.setBlendMode(Phaser.BlendModes.MULTIPLY);

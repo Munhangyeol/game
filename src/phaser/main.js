@@ -3,12 +3,12 @@ import GameScene from './scenes/GameScene.js';
 
 const config = {
     type: Phaser.AUTO,   // WebGL 우선, 폴백 Canvas
-    width: 1000,
-    height: 600,
     parent: 'game-container',
     backgroundColor: '#1a1a3e',
     pixelArt: true,
     roundPixels: true,
+    width: 1000,
+    height: 600,
     physics: {
         default: 'arcade',
         arcade: {

@@ -3,13 +3,30 @@ import { ParallaxBackgroundSystem } from '../rendering/ParallaxBackgroundSystem.
 import { AmbienceFxSystem } from '../rendering/AmbienceFxSystem.js';
 
 // ???????????????? ?뚮옯???덉씠?꾩썐 ????????????????
+const WORLD_WIDTH = 2000;
+
 const PLATFORMS = [
-    { x: 0,   y: 500, w: 1000, h: 100 },   // 吏硫?    { x: 150, y: 400, w: 150,  h: 20  },
-    { x: 420, y: 350, w: 160,  h: 20  },
-    { x: 700, y: 400, w: 150,  h: 20  },
-    { x: 50,  y: 280, w: 120,  h: 20  },
-    { x: 550, y: 250, w: 120,  h: 20  },
-    { x: 820, y: 280, w: 120,  h: 20  },
+    // ── 지면 (2000px 전체) ──
+    { x: 0,    y: 500, w: 2000, h: 100 },
+
+    // ── 왼쪽 구역 ──
+    { x: 120,  y: 400, w: 160, h: 20 },
+    { x: 380,  y: 330, w: 140, h: 20 },
+
+    // ── 중간-왼 구역 ──
+    { x: 680,  y: 420, w: 150, h: 20 },
+    { x: 880,  y: 320, w: 130, h: 20 },
+
+    // ── 중간 구역 ──
+    { x: 1080, y: 380, w: 160, h: 20 },
+    { x: 1280, y: 280, w: 130, h: 20 },
+
+    // ── 중간-오 구역 ──
+    { x: 1450, y: 420, w: 150, h: 20 },
+    { x: 1650, y: 340, w: 140, h: 20 },
+
+    // ── 오른쪽 구역 ──
+    { x: 1820, y: 400, w: 160, h: 20 },
 ];
 
 // 紐ъ뒪??????뺤쓽
@@ -87,7 +104,7 @@ export default class GameScene extends Phaser.Scene {
         this.createBackground();
 
         // ?? 臾쇰━ ?붾뱶 寃쎄퀎 紐낆떆 ?ㅼ젙 ??
-        this.physics.world.setBounds(0, 0, 1000, 600);
+        this.physics.world.setBounds(0, 0, WORLD_WIDTH, 600);
 
         // ?? ?뚮옯???앹꽦 (staticGroup ?ъ슜) ??
         this.platformGroup = this.physics.add.staticGroup();
@@ -95,6 +112,10 @@ export default class GameScene extends Phaser.Scene {
 
         // ?? ?뚮젅?댁뼱 ?앹꽦 ??
         this.createPlayer();
+
+        // 카메라 추종 (2000px 월드 스크롤)
+        this.cameras.main.setBounds(0, 0, WORLD_WIDTH, 600);
+        this.cameras.main.startFollow(this.playerBody, true, 0.12, 0.12);
 
         // ?? 紐ъ뒪??洹몃９ ??
         this.monsterGroup = this.add.group();
@@ -118,6 +139,7 @@ export default class GameScene extends Phaser.Scene {
         this.drawLayer.setDepth(10);
         this.uiLayer   = this.add.graphics();
         this.uiLayer.setDepth(11);
+        this.uiLayer.setScrollFactor(0);
         // ADD blend FX layer for glow effects
         this.fxLayer = this.add.graphics();
         this.fxLayer.setDepth(12);
@@ -233,7 +255,7 @@ export default class GameScene extends Phaser.Scene {
     }
 
     updateBackgroundLayers(delta, paused = false) {
-        const focusX = this.playerBody?.x ?? 500;
+        const focusX = 500; // 고정값: 플레이어 이동에 따른 배경 시프트 없음
         if (this.backgroundSystem) this.backgroundSystem.update(focusX, delta);
         if (this.ambienceSystem) this.ambienceSystem.update(focusX, delta, paused);
     }
@@ -551,9 +573,9 @@ export default class GameScene extends Phaser.Scene {
             this.ps.trail = [];
         }
 
-        // ?붾뱶 寃쎄퀎 ?섎룞 ?대옩??
+        // 월드 경계 클램프
         if (body.x < 20) { body.x = 20; body.setVelocityX(0); }
-        if (body.x > 980) { body.x = 980; body.setVelocityX(0); }
+        if (body.x > WORLD_WIDTH - 20) { body.x = WORLD_WIDTH - 20; body.setVelocityX(0); }
     }
 
     // ??????????????????????????????????????????????????????????
@@ -594,8 +616,12 @@ export default class GameScene extends Phaser.Scene {
         else              type = 'dragon';
 
         const mt = MONSTER_TYPES[type];
+        // 플레이어 기준 화면 밖(500~700px)에서 스폰
+        const playerX = this.playerBody ? this.playerBody.x : WORLD_WIDTH / 2;
         const side = Math.random() > 0.5;
-        const spawnX = side ? 20 + Math.random() * 100 : 880 + Math.random() * 100;
+        const dist = 520 + Math.random() * 200;
+        const spawnX = Math.max(20, Math.min(WORLD_WIDTH - 20,
+            side ? playerX + dist : playerX - dist));
 
         const baseHp = 30 + lv * 10;
         const baseAtk = 5 + lv * 2;
@@ -680,7 +706,7 @@ export default class GameScene extends Phaser.Scene {
             }
 
             // 寃쎄퀎 泥섎━
-            if (m.x < 0 || m.x > 1000) { m.vx *= -1; }
+            if (m.x < 0 || m.x > WORLD_WIDTH) { m.vx *= -1; }
             if (m.y > 700) { m.dead = true; continue; }
 
             // ?뚮젅?댁뼱 怨듦꺽 (?묒큺)
@@ -966,7 +992,7 @@ export default class GameScene extends Phaser.Scene {
                 const mult = skill.type === 'enhancedRain' ? 1.5 : skill.type === 'allDayRain' ? 2.0 : 1.0;
                 const laneCount = 15;
                 const width = 400;
-                const startX = Math.max(0, Math.min(1000 - width, cx - width / 2));
+                const startX = Math.max(0, Math.min(WORLD_WIDTH - width, cx - width / 2));
                 const topY = 40;
                 const impactY = 520;
 
@@ -1149,7 +1175,7 @@ export default class GameScene extends Phaser.Scene {
             proj.y += proj.vy * dt;
             proj.frame += dt;
 
-            if (proj.x < 0 || proj.x > 1000 || proj.y < 0 || proj.y > 620 || proj.frame > 90) {
+            if (proj.x < 0 || proj.x > WORLD_WIDTH || proj.y < 0 || proj.y > 620 || proj.frame > 90) {
                 proj.dead = true;
                 continue;
             }
@@ -1388,7 +1414,9 @@ export default class GameScene extends Phaser.Scene {
     //  ?꾩껜 ?뚮뜑留?    // ??????????????????????????????????????????????????????????
     drawAll(time) {
         const g = this.drawLayer;
+        const u = this.uiLayer;
         g.clear();
+        u.clear();
         if (this.fxLayer) this.fxLayer.clear();
 
         // projectiles
@@ -1406,17 +1434,11 @@ export default class GameScene extends Phaser.Scene {
         // particles
         this.drawParticles(g);
 
-        // minimap
-        this.drawMinimap(g);
-
-        // 肄ㅻ낫
-        this.drawCombo(g, time);
-
-        // 硫붿냼
-        this.drawMesoCounter(g);
-
-        // ?쇱떆?뺤? ?ㅻ쾭?덉씠
-        if (this.gs.paused) this.drawPauseOverlay(g);
+        // UI (화면 고정 레이어)
+        this.drawMinimap(u);
+        this.drawCombo(u, time);
+        this.drawMesoCounter(u);
+        if (this.gs.paused) this.drawPauseOverlay(u);
     }
 
     // ??????????????????????????????????????????????????????????
@@ -2356,7 +2378,7 @@ export default class GameScene extends Phaser.Scene {
     //  誘몃땲留?    // ??????????????????????????????????????????????????????????
     drawMinimap(g) {
         const MX = 800, MY = 530, MW = 180, MH = 60;
-        const scaleX = MW / 1000, scaleY = MH / 600;
+        const scaleX = MW / WORLD_WIDTH, scaleY = MH / 600;
 
         g.fillStyle(0x000000, 0.6);
         g.fillRect(MX, MY, MW, MH);
